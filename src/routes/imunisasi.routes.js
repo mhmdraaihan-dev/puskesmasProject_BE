@@ -5,8 +5,12 @@ import {
   createImunisasi,
   updateImunisasi,
   deleteImunisasi,
+  verifyImunisasi,
 } from "../controllers/imunisasi.controller.js";
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import {
+  authenticateToken,
+  authorizePosition,
+} from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
   createImunisasiSchema,
@@ -31,5 +35,13 @@ router.put(
   updateImunisasi,
 );
 router.delete("/imunisasi/:id", authenticateToken, deleteImunisasi);
+
+// VERIFICATION: Only Bidan Desa / Koordinator
+router.patch(
+  "/imunisasi/:id/verify",
+  authenticateToken,
+  authorizePosition("bidan_desa", "bidan_koordinator"),
+  verifyImunisasi,
+);
 
 export default router;

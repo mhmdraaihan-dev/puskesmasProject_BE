@@ -11,6 +11,8 @@ import pasienRoutes from "./src/routes/pasien.routes.js";
 import persalinanRoutes from "./src/routes/persalinan.routes.js";
 import keluargaBerencanaRoutes from "./src/routes/keluarga-berencana.routes.js";
 import imunisasiRoutes from "./src/routes/imunisasi.routes.js";
+import dashboardRoutes from "./src/routes/dashboard.routes.js";
+import reportRoutes from "./src/routes/report.routes.js";
 
 dotenv.config();
 
@@ -31,8 +33,11 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
 app.use("/api", authRoutes);
-app.use("/api", healthDataRoutes); // Pindahkan ke atas sebelum userRoutes
+app.use("/api", dashboardRoutes);
+app.use("/api", reportRoutes);
+app.use("/api", healthDataRoutes); // Legacy - Keep for now
 app.use("/api", pemeriksaanKehamilanRoutes); // Bidan praktik data routes
 app.use("/api", persalinanRoutes); // Bidan praktik data routes
 app.use("/api", keluargaBerencanaRoutes); // Bidan praktik data routes

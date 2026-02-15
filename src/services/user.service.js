@@ -58,6 +58,19 @@ export const getUserService = async () => {
   return user;
 };
 
+export const getUserByIdService = async (user_id) => {
+  const user = await prisma.user.findUnique({
+    where: { user_id },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  delete user.password;
+  return user;
+};
+
 export const updateUserStatusService = async (user_id, status_user) => {
   // Validasi status harus ACTIVE atau INACTIVE
   if (status_user !== "ACTIVE" && status_user !== "INACTIVE") {

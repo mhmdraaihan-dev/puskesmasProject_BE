@@ -5,8 +5,12 @@ import {
   createPersalinan,
   updatePersalinan,
   deletePersalinan,
+  verifyPersalinan,
 } from "../controllers/persalinan.controller.js";
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import {
+  authenticateToken,
+  authorizePosition,
+} from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
   createPersalinanSchema,
@@ -31,5 +35,13 @@ router.put(
   updatePersalinan,
 );
 router.delete("/persalinan/:id", authenticateToken, deletePersalinan);
+
+// VERIFICATION: Only Bidan Desa / Koordinator
+router.patch(
+  "/persalinan/:id/verify",
+  authenticateToken,
+  authorizePosition("bidan_desa", "bidan_koordinator"),
+  verifyPersalinan,
+);
 
 export default router;

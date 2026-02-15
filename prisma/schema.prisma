@@ -49,12 +49,19 @@ model user {
   // Audit trail relations for bidan praktik data
   created_pemeriksaan_kehamilan  pemeriksaan_kehamilan[] @relation("CreatedPemeriksaan")
   updated_pemeriksaan_kehamilan  pemeriksaan_kehamilan[] @relation("UpdatedPemeriksaan")
+  verified_pemeriksaan_kehamilan pemeriksaan_kehamilan[] @relation("VerifiedPemeriksaan")
+  
   created_persalinan             persalinan[]            @relation("CreatedPersalinan")
   updated_persalinan             persalinan[]            @relation("UpdatedPersalinan")
+  verified_persalinan            persalinan[]            @relation("VerifiedPersalinan")
+  
   created_keluarga_berencana     keluarga_berencana[]    @relation("CreatedKB")
   updated_keluarga_berencana     keluarga_berencana[]    @relation("UpdatedKB")
+  verified_keluarga_berencana    keluarga_berencana[]    @relation("VerifiedKB")
+  
   created_imunisasi              imunisasi[]             @relation("CreatedImunisasi")
   updated_imunisasi              imunisasi[]             @relation("UpdatedImunisasi")
+  verified_imunisasi             imunisasi[]             @relation("VerifiedImunisasi")
   
   @@map("users")
 }
@@ -67,6 +74,7 @@ model village {
   
   users           user[]
   practice_places practice_place[]
+  pasiens         pasien[]
   
   @@map("villages")
 }
@@ -130,10 +138,12 @@ model pasien {
   nama           String   @db.VarChar(255)
   alamat_lengkap String   @db.Text
   tanggal_lahir  DateTime
+  village_id     String?  // Tambahkan ini untuk sortir per desa
   
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   
+  village               village?                @relation(fields: [village_id], references: [village_id])
   pemeriksaan_kehamilan pemeriksaan_kehamilan[]
   persalinan            persalinan[]
   keluarga_berencana    keluarga_berencana[]
@@ -159,6 +169,12 @@ model pemeriksaan_kehamilan {
   resti           String   @db.VarChar(50)  // "RENDAH", "SEDANG", "TINGGI"
   catatan         String?  @db.Text
   
+  // Verification Fields
+  status_verifikasi      VerificationStatus @default(PENDING)
+  alasan_penolakan       String?            @db.Text
+  tanggal_verifikasi     DateTime?
+  diverifikasi_oleh      String?
+  
   // Audit trail
   created_by      String
   updated_by      String?
@@ -171,6 +187,7 @@ model pemeriksaan_kehamilan {
   pasien         pasien                @relation(fields: [pasien_id], references: [pasien_id])
   creator        user                  @relation("CreatedPemeriksaan", fields: [created_by], references: [user_id])
   updater        user?                 @relation("UpdatedPemeriksaan", fields: [updated_by], references: [user_id])
+  verifier       user?                 @relation("VerifiedPemeriksaan", fields: [diverifikasi_oleh], references: [user_id])
   ceklab_report  ceklab_report?
   
   @@map("pemeriksaan_kehamilan")
@@ -213,6 +230,12 @@ model persalinan {
   
   catatan            String?  @db.Text
   
+  // Verification Fields
+  status_verifikasi      VerificationStatus @default(PENDING)
+  alasan_penolakan       String?            @db.Text
+  tanggal_verifikasi     DateTime?
+  diverifikasi_oleh      String?
+  
   // Audit trail
   created_by      String
   updated_by      String?
@@ -224,6 +247,7 @@ model persalinan {
   pasien                  pasien                   @relation(fields: [pasien_id], references: [pasien_id])
   creator                 user                     @relation("CreatedPersalinan", fields: [created_by], references: [user_id])
   updater                 user?                    @relation("UpdatedPersalinan", fields: [updated_by], references: [user_id])
+  verifier                user?                    @relation("VerifiedPersalinan", fields: [diverifikasi_oleh], references: [user_id])
   keadaan_ibu_persalinan  keadaan_ibu_persalinan?
   keadaan_bayi_persalinan keadaan_bayi_persalinan?
   
@@ -291,6 +315,12 @@ model keluarga_berencana {
   
   keterangan            String?  @db.Text
   
+  // Verification Fields
+  status_verifikasi      VerificationStatus @default(PENDING)
+  alasan_penolakan       String?            @db.Text
+  tanggal_verifikasi     DateTime?
+  diverifikasi_oleh      String?
+  
   // Audit trail
   created_by  String
   updated_by  String?
@@ -302,6 +332,7 @@ model keluarga_berencana {
   pasien         pasien         @relation(fields: [pasien_id], references: [pasien_id])
   creator        user           @relation("CreatedKB", fields: [created_by], references: [user_id])
   updater        user?          @relation("UpdatedKB", fields: [updated_by], references: [user_id])
+  verifier       user?          @relation("VerifiedKB", fields: [diverifikasi_oleh], references: [user_id])
   
   @@map("keluarga_berencana")
 }
@@ -322,6 +353,12 @@ model imunisasi {
   
   catatan         String?  @db.Text
   
+  // Verification Fields
+  status_verifikasi      VerificationStatus @default(PENDING)
+  alasan_penolakan       String?            @db.Text
+  tanggal_verifikasi     DateTime?
+  diverifikasi_oleh      String?
+  
   // Audit trail
   created_by      String
   updated_by      String?
@@ -333,6 +370,7 @@ model imunisasi {
   pasien         pasien         @relation(fields: [pasien_id], references: [pasien_id])
   creator        user           @relation("CreatedImunisasi", fields: [created_by], references: [user_id])
   updater        user?          @relation("UpdatedImunisasi", fields: [updated_by], references: [user_id])
+  verifier       user?          @relation("VerifiedImunisasi", fields: [diverifikasi_oleh], references: [user_id])
   
   @@map("imunisasi")
 }

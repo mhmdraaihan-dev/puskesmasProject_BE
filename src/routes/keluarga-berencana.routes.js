@@ -5,8 +5,12 @@ import {
   createKeluargaBerencana,
   updateKeluargaBerencana,
   deleteKeluargaBerencana,
+  verifyKeluargaBerencana,
 } from "../controllers/keluarga-berencana.controller.js";
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import {
+  authenticateToken,
+  authorizePosition,
+} from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
   createKeluargaBerencanaSchema,
@@ -38,6 +42,14 @@ router.delete(
   "/keluarga-berencana/:id",
   authenticateToken,
   deleteKeluargaBerencana,
+);
+
+// VERIFICATION: Only Bidan Desa / Koordinator
+router.patch(
+  "/keluarga-berencana/:id/verify",
+  authenticateToken,
+  authorizePosition("bidan_desa", "bidan_koordinator"),
+  verifyKeluargaBerencana,
 );
 
 export default router;

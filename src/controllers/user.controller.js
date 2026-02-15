@@ -1,6 +1,7 @@
 import {
   createUserService,
   getUserService,
+  getUserByIdService,
   updateUserStatusService,
   updateUserService,
   changePasswordService,
@@ -38,6 +39,23 @@ export const getUserController = async (req, res) => {
   }
 };
 
+export const getUserByIdController = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const result = await getUserByIdService(user_id);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const updateUserStatusController = async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -60,6 +78,34 @@ export const updateUserStatusController = async (req, res) => {
 export const updateUserController = async (req, res) => {
   try {
     const { user_id } = req.params;
+    const requesterId = req.user.user_id;
+    const requesterRole = req.user.role;
+
+    // VALIDASI AKSES: Admin boleh edit siapa saja, User hanya boleh edit diri sendiri
+    if (requesterRole !== "ADMIN" && requesterId !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Anda hanya diperbolehkan mengedit profil sendiri",
+      });
+    }
+
+    // VALIDASI FIELD: User biasa tidak boleh ubah role/posisi/status/village
+    if (requesterRole !== "ADMIN") {
+      const allowedFields = ["full_name", "phone_number", "email", "address"];
+      const requestedFields = Object.keys(req.body);
+      const hasForbiddenFields = requestedFields.some(
+        (field) => !allowedFields.includes(field),
+      );
+
+      if (hasForbiddenFields) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Anda tidak memiliki izin untuk mengubah data sensitif (Role, Posisi, Status, Desa)",
+        });
+      }
+    }
+
     const result = await updateUserService(user_id, req.body);
     res.status(200).json({
       success: true,
@@ -77,7 +123,16 @@ export const updateUserController = async (req, res) => {
 export const changePasswordController = async (req, res) => {
   try {
     const { user_id } = req.params;
+    const requesterId = req.user.user_id;
     const { old_password, new_password } = req.body;
+
+    // VALIDASI AKSES: Hanya boleh ganti password sendiri
+    if (requesterId !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Anda tidak diperbolehkan mengganti password user lain",
+      });
+    }
 
     // Validasi input
     if (!old_password || !new_password) {

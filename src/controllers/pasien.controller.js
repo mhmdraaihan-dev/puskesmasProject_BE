@@ -1,4 +1,5 @@
 import * as pasienService from "../services/pasien.service.js";
+import prisma from "../../lib/prisma.js";
 
 /**
  * Get all pasien
@@ -11,7 +12,7 @@ export const getAllPasien = async (req, res) => {
       search: req.query.search,
     };
 
-    const result = await pasienService.getAllPasien(filters);
+    const result = await pasienService.getAllPasien(filters, req.user);
 
     res.status(200).json({
       success: true,
@@ -34,7 +35,7 @@ export const getAllPasien = async (req, res) => {
 export const getPasienById = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = await pasienService.getPasienById(id);
+    const data = await pasienService.getPasienById(id, req.user);
 
     res.status(200).json({
       success: true,
@@ -55,6 +56,28 @@ export const getPasienById = async (req, res) => {
  */
 export const createPasien = async (req, res) => {
   try {
+    const userId = req.user.user_id;
+    const userRole = req.user.position_user;
+
+    // Jika user adalah Bidan Praktik, otomatis ambil village_id dari tempat praktiknya
+    if (userRole === "bidan_praktik") {
+      const practicePlace = await prisma.practice_place.findUnique({
+        where: { user_id: userId },
+      });
+
+      if (practicePlace) {
+        req.body.village_id = practicePlace.village_id;
+      }
+    } else if (userRole === "bidan_desa") {
+      // Jika Bidan Desa, ambil village_id dari profil user
+      const user = await prisma.user.findUnique({
+        where: { user_id: userId },
+      });
+      if (user) {
+        req.body.village_id = user.village_id;
+      }
+    }
+
     const data = await pasienService.createPasien(req.body);
 
     res.status(201).json({
@@ -77,7 +100,7 @@ export const createPasien = async (req, res) => {
 export const updatePasien = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = await pasienService.updatePasien(id, req.body);
+    const data = await pasienService.updatePasien(id, req.body, req.user);
 
     res.status(200).json({
       success: true,
@@ -99,7 +122,7 @@ export const updatePasien = async (req, res) => {
 export const deletePasien = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pasienService.deletePasien(id);
+    const result = await pasienService.deletePasien(id, req.user);
 
     res.status(200).json({
       success: true,

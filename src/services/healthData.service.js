@@ -515,30 +515,41 @@ export const rejectHealthDataService = async (
   return rejectedData;
 };
 
-// GET PENDING: Ambil data yang menunggu verifikasi (Bidan Desa)
+// GET PENDING: Ambil data yang menunggu verifikasi (Bidan Desa & Koordinator)
 export const getPendingHealthDataService = async (user_id) => {
   const user = await prisma.user.findUnique({
     where: { user_id },
   });
 
-  if (user.position_user !== "bidan_desa") {
-    throw new Error("Hanya bidan desa yang bisa melihat data pending");
+  if (
+    user.position_user !== "bidan_desa" &&
+    user.position_user !== "bidan_koordinator"
+  ) {
+    throw new Error(
+      "Hanya Bidan Desa atau Bidan Koordinator yang bisa melihat data pending",
+    );
   }
 
-  if (!user.village_id) {
-    throw new Error("Bidan desa belum di-assign ke desa");
+  const whereClause = {
+    status_verifikasi: "PENDING",
+  };
+
+  // Jika Bidan Desa, filter by village_id
+  if (user.position_user === "bidan_desa") {
+    if (!user.village_id) {
+      throw new Error("Bidan desa belum di-assign ke desa");
+    }
+    whereClause.practice_place = {
+      village_id: user.village_id,
+    };
   }
 
   const pendingData = await prisma.health_data.findMany({
-    where: {
-      status_verifikasi: "PENDING",
-      practice_place: {
-        village_id: user.village_id,
-      },
-    },
+    where: whereClause,
     include: {
       practice_place: {
         include: {
+          village: true, // Tambahkan include village agar koordinator tau ini desa mana
           user: {
             select: {
               user_id: true,

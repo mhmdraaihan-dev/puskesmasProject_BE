@@ -1,145 +1,252 @@
-# API Documentation - Puskesmas Project
+# API Documentation - Puskesmas Project (SiBidan)
 
-This document outlines the API endpoints available for the frontend team to integrate with the backend services.
+Dokumentasi ini mencakup seluruh endpoint yang tersedia untuk integrasi Frontend.
 
 ## Base URL
-All API endpoints are prefixed with `/api`.
-Example: `http://localhost:3000/api`
+
+`http://localhost:9090/api`
 
 ## Authentication
-The login endpoint returns a JWT `accessToken`. This token should be included in the `Authorization` header for protected routes (implementation pending).
+
+Hampir semua endpoint membutuhkan header `Authorization: Bearer <accessToken>`.
 
 ---
 
 ## 1. User Management
 
-### 1.1 Create User (Register)
-Creates a new user in the system.
+### 1.1 List Users
 
-- **URL**: `/api/user`
-- **Method**: `POST`
-- **Content-Type**: `application/json`
+- **URL**: `/api/users`
+- **Method**: `GET`
+- **Access**: All Authenticated Users (untuk keperluan dropdown/list).
 
-#### Request Body
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `full_name` | String | Yes | Full name of the user. |
-| `password` | String | Yes | User's password. |
-| `email` | String | Yes | Unique email address. |
-| `address` | String | Yes | User's address. |
-| `position_user` | Enum | Yes | One of: `bidan_praktik`, `bidan_desa`, `bidan_koordinator` |
-| `role` | Enum | No | default: `USER`. Options: `ADMIN`, `USER` |
-| `status_user` | Enum | No | default: `INACTIVE`. Options: `ACTIVE`, `INACTIVE` |
-| `phone_number` | String | No | User's phone number. |
+### 1.2 Get Detail User
 
-**Example Request:**
-```json
-{
-  "full_name": "Siti Aminah",
-  "password": "securepassword123",
-  "email": "siti.aminah@example.com",
-  "address": "Jl. Mawar No. 10",
-  "position_user": "bidan_desa",
-  "phone_number": "081234567890"
-}
-```
+- **URL**: `/api/users/:user_id`
+- **Method**: `GET`
+- **Access**: All Authenticated Users.
 
-#### Response (201 Created)
-Returns the created user object (excluding the password).
+### 1.3 Update Status User (Admin)
 
-```json
-{
-  "user_id": "uuid-string",
-  "full_name": "Siti Aminah",
-  "email": "siti.aminah@example.com",
-  "address": "Jl. Mawar No. 10",
-  "position_user": "bidan_desa",
-  "role": "USER",
-  "status_user": "INACTIVE",
-  "phone_number": "081234567890",
-  "created_at": "2024-02-07T08:00:00.000Z",
-  "updated_at": "2024-02-07T08:00:00.000Z"
-}
-```
+- **URL**: `/api/users/:user_id/status`
+- **Method**: `PATCH`
+- **Access**: ADMIN
+- **Body**: `{ "status_user": "ACTIVE" | "INACTIVE" }`
+
+### 1.4 Change Password
+
+- **URL**: `/api/users/:user_id/password`
+- **Method**: `PATCH`
+- **Access**: User yang bersangkutan saja.
+- **Body**: `{ "old_password": "...", "new_password": "..." }`
 
 ---
 
-### 1.2 Login User
-Authenticates a user and returns an access token.
+## 2. Dashboard
 
-- **URL**: `/api/login`
-- **Method**: `POST`
-- **Content-Type**: `application/json`
+### 2.1 Pending Tasks (Verifikasi)
 
-#### Request Body
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `email` | String | Yes | Registered email address. |
-| `password` | String | Yes | User's password. |
+Mengambil daftar tugas yang menunggu persetujuan (PENDING) dari 4 modul pelayanan.
 
-**Example Request:**
-```json
-{
-  "email": "siti.aminah@example.com",
-  "password": "securepassword123"
-}
-```
+- **URL**: `/api/dashboard/pending-tasks`
+- **Method**: `GET`
+- **Access**: Bidan Desa (filter desa), Bidan Koordinator (all).
 
-#### Response (200 OK)
-Returns the user object (excluding sensitive info) and an access token.
+### 2.2 Stats (Akumulasi Data)
 
-```json
-{
-  "user": {
-    "user_id": "uuid-string",
-    "full_name": "Siti Aminah",
-    "email": "siti.aminah@example.com",
-    "position_user": "bidan_desa",
-    "role": "USER",
-    "status_user": "INACTIVE",
-    "created_at": "...",
-    "updated_at": "..."
-  },
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+Mengambil angka statistik total dan bulan ini.
+
+- **URL**: `/api/dashboard/stats`
+- **Method**: `GET`
+- **Access**: Semua Role (Data terfilter otomatis sesuai wilayahnya).
 
 ---
 
-### 1.3 Get All Users
-Retrieves a list of all users.
+## 3. Pelayanan Kesehatan (4 Modul Utama)
 
-- **URL**: `/api/user`
+Modul: `pemeriksaan-kehamilan`, `persalinan`, `keluarga-berencana`, `imunisasi`.
+
+### 3.1 List & Filter Data (All Roles)
+
+Mengambil daftar data kesehatan dengan berbagai filter.
+
+- **URL**: `/api/{modul}`
+- **Method**: `GET`
+- **Query Parameters**:
+  - `page`, `limit` (Pagination)
+  - `status_verifikasi`: `PENDING` | `APPROVED` | `REJECTED`
+  - `month`: (1-12) Filter bulan rekapitulasi.
+  - `year`: (YYYY) Filter tahun rekapitulasi.
+  - `search`: Cari berdasarkan Nama Pasien atau NIK.
+  - `pasien_id`: Cari riwayat pasien tertentu.
+  - `practice_id`: Filter per tempat praktik (untuk Koordinator).
+  - `village_id`: Filter per Desa (Hanya Bidan Koordinator / Admin).
+- **Security**: Otomatis menyaring data berdasarkan desa/tempat praktik user yang login (kecuali Koordinator/Admin).
+
+### 3.2 Create Data (Inputter)
+
+- **URL**: `/api/{modul}`
+- **Method**: `POST`
+- **Access**: Bidan Praktik.
+- **Note**: `practice_id` otomatis terisi oleh backend dari data user yang login.
+
+### 3.2 Update Data (Revision)
+
+- **URL**: `/api/{modul}/:id`
+- **Method**: `PUT`
+- **Condition**: Hanya bisa jika status = `REJECTED`. Setelah disave, status otomatis balik jadi `PENDING`.
+
+### 3.3 Verify Data (Approver)
+
+- **URL**: `/api/{modul}/:id/verify`
+- **Method**: `PATCH`
+- **Access**: Bidan Desa / Koordinator.
+- **Body**:
+
+```json
+{
+  "status": "APPROVED" | "REJECTED",
+  "alasan": "Wajib diisi jika REJECTED"
+}
+```
+
+### 3.4 Rekapitulasi (Bidan Koordinator)
+
+Untuk fitur rekapitulasi, gunakan endpoint **3.1 (List & Filter Data)** dengan parameter tambahan:
+
+- **Contoh URL**: `/api/pemeriksaan-kehamilan?status_verifikasi=APPROVED&month=02&year=2026`
+- **Result**: Maka akan mengembalikan seluruh data lengkap sesuai modulnya (termasuk relasi `pasien`, `practice_place`, `ceklab_report`, `creator`, dll) yang sudah berstatus `APPROVED` di bulan tersebut.
+
+---
+
+## 4. Master Data
+
+### 4.1 Pasien
+
+- **URL**: `/api/pasien`
+- **Method**: `GET`, `POST`, `PUT`, `DELETE`
+- **Note**: `GET /api/pasien/:id` mengembalikan data pasien beserta 5 histori medis terakhir dari tiap modul.
+
+### 4.2 Wilayah (Village)
+
+- **URL**: `/api/villages`
 - **Method**: `GET`
 
-#### Response (200 OK)
-Returns an array of user objects.
+### 4.3 Tempat Praktik
 
-```json
-[
-  {
-    "user_id": "uuid-1",
-    "full_name": "Siti Aminah",
-    "email": "siti.aminah@example.com",
-    "address": "Jl. Mawar No. 10",
-    "position_user": "bidan_desa",
-    "role": "USER",
-    "status_user": "INACTIVE",
-    "phone_number": "081234567890",
-    "created_at": "...",
-    "updated_at": "..."
-  },
-  {
-    "user_id": "uuid-2",
-    "full_name": "Budi Santoso",
-    "email": "budi@example.com",
-    "address": "Jl. Melati No. 5",
-    "position_user": "bidan_koordinator",
-    "role": "ADMIN",
-    "status_user": "ACTIVE",
-    "phone_number": "08987654321",
-    "created_at": "...",
-    "updated_at": "..."
-  }
-]
-```
+- **URL**: `/api/practice-places`
+- **Method**: `GET`, `POST`, `PUT`
+- **Note**: Tempat Praktik menghubungkan User (Bidan Praktik) dengan Desa.
+
+---
+
+## 5. Village Access Control (Security)
+
+Aplikasi menerapkan penguncian data berdasarkan wilayah (Desa).
+
+- **ADMIN & Bidan Koordinator**: Memiliki akses ke **seluruh desa**.
+- **Bidan Desa**: Hanya bisa mengakses/verifikasi data di **Desa yang ditugaskan**.
+- **Bidan Praktik**: Hanya bisa mengakses/input data di **Tempat Praktik (Desa) miliknya**.
+- **Midwife Unassigned**: Jika user belum di-assign ke Desa atau Tempat Praktik, maka akses ke data kesehatan (Pasien, Kehamilan, dll) akan **DIBLOKIR** sama sekali.
+
+---
+
+## 6. Reports (Excel Export)
+
+Endpoint untuk mendownload data dalam format Excel (.xlsx).
+
+### 6.1 Export Pemeriksaan Kehamilan
+
+Mendownload data pemeriksaan kehamilan yang sudah **APPROVED** ke file Excel.
+
+- **URL**: `/api/reports/pemeriksaan-kehamilan/export`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.2 Export Persalinan
+
+Mendownload data persalinan yang sudah **APPROVED** ke file Excel.
+
+- **URL**: `/api/reports/persalinan/export`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.3 Export Keluarga Berencana (KB)
+
+Mendownload data KB yang sudah **APPROVED** ke file Excel.
+
+- **URL**: `/api/reports/keluarga-berencana/export`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.4 Export Imunisasi
+
+Mendownload data imunisasi yang sudah **APPROVED** ke file Excel.
+
+- **URL**: `/api/reports/imunisasi/export`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.5 Export Pemeriksaan Kehamilan (PDF)
+
+Mendownload laporan kehamilan dalam format PDF (A4 Landscape, siap cetak).
+
+- **URL**: `/api/reports/pemeriksaan-kehamilan/export-pdf`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.6 Export Persalinan (PDF)
+
+Mendownload laporan persalinan dalam format PDF (A4 Landscape, siap cetak).
+
+- **URL**: `/api/reports/persalinan/export-pdf`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.7 Export Keluarga Berencana (PDF)
+
+Mendownload laporan KB dalam format PDF (A4 Landscape, siap cetak).
+
+- **URL**: `/api/reports/keluarga-berencana/export-pdf`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.
+
+### 6.8 Export Imunisasi (PDF)
+
+Mendownload laporan imunisasi dalam format PDF (A4 Landscape, siap cetak).
+
+- **URL**: `/api/reports/imunisasi/export-pdf`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator / ADMIN.
+- **Query Parameters**:
+  - `village_id`: ID Desa (opsional).
+  - `month`: (1-12) Filter bulan.
+  - `year`: (YYYY) Filter tahun.

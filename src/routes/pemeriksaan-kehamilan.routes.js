@@ -5,8 +5,12 @@ import {
   createPemeriksaanKehamilan,
   updatePemeriksaanKehamilan,
   deletePemeriksaanKehamilan,
+  verifyPemeriksaanKehamilan,
 } from "../controllers/pemeriksaan-kehamilan.controller.js";
-import { authenticateToken } from "../middlewares/auth.middleware.js";
+import {
+  authenticateToken,
+  authorizePosition,
+} from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
   createPemeriksaanKehamilanSchema,
@@ -43,6 +47,14 @@ router.delete(
   "/pemeriksaan-kehamilan/:id",
   authenticateToken,
   deletePemeriksaanKehamilan,
+);
+
+// VERIFICATION: Only Bidan Desa / Koordinator
+router.patch(
+  "/pemeriksaan-kehamilan/:id/verify",
+  authenticateToken,
+  authorizePosition("bidan_desa", "bidan_koordinator"),
+  verifyPemeriksaanKehamilan,
 );
 
 export default router;
