@@ -50,7 +50,18 @@ export const createUserService = async (userData) => {
 };
 
 export const getUserService = async () => {
-  const user = await prisma.user.findMany();
+  const user = await prisma.user.findMany({
+    include: {
+      practice_place: {
+        select: {
+          practice_id: true,
+          nama_praktik: true,
+          village_id: true,
+          alamat: true,
+        },
+      },
+    },
+  });
   user.forEach((user) => {
     delete user.password;
   });
@@ -61,6 +72,16 @@ export const getUserService = async () => {
 export const getUserByIdService = async (user_id) => {
   const user = await prisma.user.findUnique({
     where: { user_id },
+    include: {
+      practice_place: {
+        select: {
+          practice_id: true,
+          nama_praktik: true,
+          village_id: true,
+          alamat: true,
+        },
+      },
+    },
   });
 
   if (!user) {
@@ -106,6 +127,7 @@ export const updateUserService = async (user_id, userData) => {
     position_user,
     role,
     village_id,
+    practice_id,
   } = userData;
 
   // Cek apakah user ada
@@ -144,6 +166,23 @@ export const updateUserService = async (user_id, userData) => {
     throw new Error("Bidan desa wajib di-assign ke village!");
   }
 
+  let newPracticeId =
+    practice_id !== undefined ? practice_id : existingUser.practice_id;
+
+  if (newPosition !== "bidan_praktik") {
+    newPracticeId = null;
+  }
+
+  if (newPracticeId) {
+    const practiceExists = await prisma.practice_place.findUnique({
+      where: { practice_id: newPracticeId },
+    });
+
+    if (!practiceExists) {
+      throw new Error("Tempat praktik tidak ditemukan");
+    }
+  }
+
   // Siapkan data yang akan diupdate (hanya field yang dikirim)
   const dataToUpdate = {};
 
@@ -154,6 +193,9 @@ export const updateUserService = async (user_id, userData) => {
   if (position_user !== undefined) dataToUpdate.position_user = position_user;
   if (role !== undefined) dataToUpdate.role = role;
   if (village_id !== undefined) dataToUpdate.village_id = village_id;
+  if (practice_id !== undefined || newPosition !== "bidan_praktik") {
+    dataToUpdate.practice_id = newPracticeId;
+  }
 
   // Update user
   const updatedUser = await prisma.user.update({

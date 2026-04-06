@@ -1,19 +1,36 @@
-import express from 'express';
+import express from "express";
 import {
-    createVillageController,
-    getAllVillagesController,
-    getVillageByIdController,
-    updateVillageController,
-    deleteVillageController
-} from '../controllers/village.controller.js';
+  createVillageController,
+  getAllVillagesController,
+  getVillageByIdController,
+  updateVillageController,
+  deleteVillageController,
+} from "../controllers/village.controller.js";
+import {
+  authenticateToken,
+  authorizeRole,
+} from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// CRUD Village
-router.post('/village', createVillageController);
-router.get('/village', getAllVillagesController);
-router.get('/village/:village_id', getVillageByIdController);
-router.put('/village/:village_id', updateVillageController);
-router.delete('/village/:village_id', deleteVillageController);
+router.use(authenticateToken);
+
+const basePaths = ["/village", "/villages"];
+
+for (const basePath of basePaths) {
+  router.post(basePath, authorizeRole("ADMIN"), createVillageController);
+  router.get(basePath, getAllVillagesController);
+  router.get(`${basePath}/:village_id`, getVillageByIdController);
+  router.put(
+    `${basePath}/:village_id`,
+    authorizeRole("ADMIN"),
+    updateVillageController,
+  );
+  router.delete(
+    `${basePath}/:village_id`,
+    authorizeRole("ADMIN"),
+    deleteVillageController,
+  );
+}
 
 export default router;

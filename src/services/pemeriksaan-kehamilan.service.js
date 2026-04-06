@@ -1,5 +1,13 @@
 import prisma from "../../lib/prisma.js";
 
+const ensurePelayananMutationAccess = (user, action) => {
+  if (user.position_user !== "bidan_praktik") {
+    const error = new Error(`Hanya bidan praktik yang dapat ${action}`);
+    error.statusCode = 403;
+    throw error;
+  }
+};
+
 /**
  * Get all pemeriksaan kehamilan with filtering and pagination
  */
@@ -251,6 +259,8 @@ export const createPemeriksaanKehamilan = async (payload, user) => {
 
   const userId = user.user_id;
 
+  ensurePelayananMutationAccess(user, "membuat data pemeriksaan kehamilan");
+
   // Validate practice_place exists and check access
   const practicePlace = await prisma.practice_place.findUnique({
     where: { practice_id },
@@ -354,6 +364,8 @@ export const updatePemeriksaanKehamilan = async (id, payload, user) => {
   } = payload;
 
   const userId = user.user_id;
+
+  ensurePelayananMutationAccess(user, "mengubah data pemeriksaan kehamilan");
 
   // Check if data exists
   const existing = await prisma.pemeriksaan_kehamilan.findUnique({
@@ -497,6 +509,8 @@ export const updatePemeriksaanKehamilan = async (id, payload, user) => {
  * Delete pemeriksaan kehamilan
  */
 export const deletePemeriksaanKehamilan = async (id, user) => {
+  ensurePelayananMutationAccess(user, "menghapus data pemeriksaan kehamilan");
+
   // Check if data exists
   const existing = await prisma.pemeriksaan_kehamilan.findUnique({
     where: { id },

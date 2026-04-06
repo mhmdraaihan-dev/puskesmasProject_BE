@@ -72,6 +72,7 @@ Mengambil daftar data kesehatan dengan berbagai filter.
 
 - **URL**: `/api/{modul}`
 - **Method**: `GET`
+- **Access**: Semua user terautentikasi sesuai filter wilayah/role.
 - **Query Parameters**:
   - `page`, `limit` (Pagination)
   - `status_verifikasi`: `PENDING` | `APPROVED` | `REJECTED`
@@ -90,13 +91,21 @@ Mengambil daftar data kesehatan dengan berbagai filter.
 - **Access**: Bidan Praktik.
 - **Note**: `practice_id` otomatis terisi oleh backend dari data user yang login.
 
-### 3.2 Update Data (Revision)
+### 3.3 Update Data (Revision)
 
 - **URL**: `/api/{modul}/:id`
 - **Method**: `PUT`
+- **Access**: Bidan Praktik.
 - **Condition**: Hanya bisa jika status = `REJECTED`. Setelah disave, status otomatis balik jadi `PENDING`.
 
-### 3.3 Verify Data (Approver)
+### 3.4 Delete Data
+
+- **URL**: `/api/{modul}/:id`
+- **Method**: `DELETE`
+- **Access**: Bidan Praktik.
+- **Condition**: Hanya bisa jika status = `PENDING` atau `REJECTED`. Data `APPROVED` terkunci dan tidak dapat dihapus.
+
+### 3.5 Verify Data (Approver)
 
 - **URL**: `/api/{modul}/:id/verify`
 - **Method**: `PATCH`
@@ -110,7 +119,7 @@ Mengambil daftar data kesehatan dengan berbagai filter.
 }
 ```
 
-### 3.4 Rekapitulasi (Bidan Koordinator)
+### 3.6 Rekapitulasi (Bidan Koordinator)
 
 Untuk fitur rekapitulasi, gunakan endpoint **3.1 (List & Filter Data)** dengan parameter tambahan:
 
@@ -135,8 +144,12 @@ Untuk fitur rekapitulasi, gunakan endpoint **3.1 (List & Filter Data)** dengan p
 ### 4.3 Tempat Praktik
 
 - **URL**: `/api/practice-places`
-- **Method**: `GET`, `POST`, `PUT`
-- **Note**: Tempat Praktik menghubungkan User (Bidan Praktik) dengan Desa.
+- **Method**: `GET`, `POST`, `PUT`, `DELETE`
+- **Access**:
+  - `GET`: Semua user terautentikasi.
+  - `POST`, `PUT`, `DELETE`: ADMIN.
+- **Note**: Satu Tempat Praktik berada di satu Desa dan sekarang bisa memiliki banyak Bidan Praktik.
+- **Assignment**: Gunakan field `user_ids` untuk meng-assign banyak bidan praktik ke satu tempat praktik saat create/update.
 
 ---
 
@@ -146,6 +159,7 @@ Aplikasi menerapkan penguncian data berdasarkan wilayah (Desa).
 
 - **ADMIN & Bidan Koordinator**: Memiliki akses ke **seluruh desa**.
 - **Bidan Desa**: Hanya bisa mengakses/verifikasi data di **Desa yang ditugaskan**.
+- **Bidan Desa**: Tidak bisa membuat, mengubah, atau menghapus data pada **4 modul pelayanan utama**.
 - **Bidan Praktik**: Hanya bisa mengakses/input data di **Tempat Praktik (Desa) miliknya**.
 - **Midwife Unassigned**: Jika user belum di-assign ke Desa atau Tempat Praktik, maka akses ke data kesehatan (Pasien, Kehamilan, dll) akan **DIBLOKIR** sama sekali.
 

@@ -61,9 +61,11 @@ export const createPasien = async (req, res) => {
 
     // Jika user adalah Bidan Praktik, otomatis ambil village_id dari tempat praktiknya
     if (userRole === "bidan_praktik") {
-      const practicePlace = await prisma.practice_place.findUnique({
+      const currentUser = await prisma.user.findUnique({
         where: { user_id: userId },
+        include: { practice_place: true },
       });
+      const practicePlace = currentUser?.practice_place;
 
       if (practicePlace) {
         req.body.village_id = practicePlace.village_id;

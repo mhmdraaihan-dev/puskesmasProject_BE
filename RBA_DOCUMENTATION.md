@@ -1,73 +1,70 @@
 # Role-Based Access Control (RBAC) Documentation
 
-Dokumen ini menjelaskan hak akses untuk setiap peran (Role & Position) dalam aplikasi SiBidan (Puskesmas Project). Tim Frontend diharapkan menggunakan panduan ini untuk mengatur visibility menu dan proteksi halaman (Route Guard).
+Dokumen ini menjelaskan hak akses untuk setiap peran (`role` dan `position_user`) dalam aplikasi SiBidan. Tim frontend dapat memakai dokumen ini untuk menu visibility, route guard, dan kontrol tombol aksi.
 
-## 1. Definisi Peran (Roles)
+## 1. Definisi Peran
 
-Sistem menggunakan kombinasi `role` dan `position_user` dari database.
+| Tipe User | Role (DB) | Position (DB) | Deskripsi |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `ADMIN` | - | Mengelola user, master data wilayah, dan konfigurasi sistem. |
+| **Bidan Koordinator** | `USER` | `bidan_koordinator` | Melihat semua data pelayanan dan memverifikasi data lintas desa. |
+| **Bidan Desa** | `USER` | `bidan_desa` | Melihat dan memverifikasi data pelayanan di desa yang di-assign. |
+| **Bidan Praktik** | `USER` | `bidan_praktik` | Inputter utama untuk modul pelayanan. Hanya dapat memutasi data miliknya sendiri. |
 
-| Tipe User             | Role (DB) | Position (DB)       | Deskripsi Singkat                                                                                 |
-| :-------------------- | :-------- | :------------------ | :------------------------------------------------------------------------------------------------ |
-| **Super Admin**       | `ADMIN`   | -                   | Mengelola User, Master Data Wilayah, Konfigurasi Sistem.                                          |
-| **Bidan Koordinator** | `USER`    | `bidan_koordinator` | Memantau seluruh kegiatan, Memverifikasi data dari semua Bidan Desa/Praktik.                      |
-| **Bidan Desa**        | `USER`    | `bidan_desa`        | Memverifikasi data dari Bidan Praktik di wilayah desanya.                                         |
-| **Bidan Praktik**     | `USER`    | `bidan_praktik`     | Ujung tombak input data pelayanan (KIA, KB, Imunisasi). Hanya bisa melihat data miliknya sendiri. |
+## 2. Matriks Akses Menu
 
----
+| Menu / Halaman | Admin | Bidan Koordinator | Bidan Desa | Bidan Praktik | Catatan |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Dashboard** | Yes | Yes | Yes | Yes | Konten dashboard berbeda per role. |
+| **Manajemen User** | Yes | No | No | No | CRUD user dan reset password. |
+| **Master Data** | Yes | No | No | No | Data wilayah dan konfigurasi dasar. |
+| **Data Pasien** | No | Yes | Yes | Yes | Master data pasien tetap dapat diakses sesuai wilayah. |
+| **Pemeriksaan Kehamilan** | No | View & Verify | View & Verify | Input & View Own | Create/Update/Delete hanya untuk `bidan_praktik`. |
+| **Persalinan** | No | View & Verify | View & Verify | Input & View Own | Create/Update/Delete hanya untuk `bidan_praktik`. |
+| **Keluarga Berencana** | No | View & Verify | View & Verify | Input & View Own | Create/Update/Delete hanya untuk `bidan_praktik`. |
+| **Imunisasi** | No | View & Verify | View & Verify | Input & View Own | Create/Update/Delete hanya untuk `bidan_praktik`. |
+| **Laporan / Rekap** | No | Yes | Yes | No | Rekap agregat dan laporan export. |
 
-## 2. Matriks Akses Menu (Frontend)
-
-Berikut adalah daftar menu sidebar/navigasi dan siapa saja yang berhak mengaksesnya.
-
-| Menu / Halaman            | Admin | Bidan Koordinator  |     Bidan Desa     |     Bidan Praktik     | Catatan                                          |
-| :------------------------ | :---: | :----------------: | :----------------: | :-------------------: | :----------------------------------------------- |
-| **Dashboard**             |  ✅   |         ✅         |         ✅         |          ✅           | Konten dashboard berbeda tiap role.              |
-| **Manajemen User**        |  ✅   |         ❌         |         ❌         |          ❌           | CRUD User, Reset Password.                       |
-| **Master Data**           |  ✅   |         ❌         |         ❌         |          ❌           | Data Wilayah (Desa, Kecamatan).                  |
-| **Data Pasien**           |  ❌   |         ✅         |         ✅         |          ✅           | Master Data Pasien.                              |
-| **Pemeriksaan Kehamilan** |  ❌   | ✅ (View & Verify) | ✅ (View & Verify) | ✅ (Input & View Own) | Input, Edit, Delete hanya untuk status tertentu. |
-| **Persalinan**            |  ❌   | ✅ (View & Verify) | ✅ (View & Verify) | ✅ (Input & View Own) | -                                                |
-| **Keluarga Berencana**    |  ❌   | ✅ (View & Verify) | ✅ (View & Verify) | ✅ (Input & View Own) | -                                                |
-| **Imunisasi**             |  ❌   | ✅ (View & Verify) | ✅ (View & Verify) | ✅ (Input & View Own) | -                                                |
-| **Laporan / Rekap**       |  ❌   |         ✅         |         ✅         |          ❌           | Laporan Agregat.                                 |
-
----
+Catatan penting: untuk 4 modul pelayanan, `bidan_desa` dan `bidan_koordinator` adalah `Read-Only & Verify Only`.
 
 ## 3. Detail Hak Akses Per Modul
 
 ### A. Manajemen User (`/users`)
 
-- **ADMIN**: Full Access (Create, Read, Update, Delete/Deactivate, Reset Password).
-- **OTHERS**: No Access (Hanya bisa Edit Profil Sendiri & Ganti Password Sendiri).
+- **ADMIN**: Full access (`create`, `read`, `update`, `status change`, `reset password`).
+- **Role lain**: Tidak memiliki akses manajemen user, hanya dapat mengelola profil dan password sendiri.
 
-### B. Pelayanan Kesehatan (KIA, KB, Imunisasi)
+### B. Pelayanan Kesehatan
 
-Berlaku untuk modul: `Kehamilan`, `Persalinan`, `KB`, `Imunisasi`.
+Berlaku untuk modul `Kehamilan`, `Persalinan`, `KB`, dan `Imunisasi`.
 
 #### 1. Bidan Praktik (`bidan_praktik`)
 
-- **VIEW**: Hanya bisa melihat data yang **dibuat oleh dirinya sendiri** (Filter otomatis dari Backend: `practice_id`).
-- **CREATE**: Bisa membuat data baru. Status awal: **PENDING**.
-- **UPDATE**: Hanya bisa mengedit data jika statusnya **REJECTED**.
-- **DELETE**: Hanya bisa menghapus data jika statusnya **PENDING** atau **REJECTED**. Data **APPROVED** terkunci.
+- **VIEW**: Hanya dapat melihat data di tempat praktiknya sendiri.
+- **CREATE**: Dapat membuat data baru. Status awal selalu `PENDING`.
+- **UPDATE**: Hanya dapat mengubah data jika status `REJECTED`.
+- **DELETE**: Hanya dapat menghapus data jika status `PENDING` atau `REJECTED`.
+- **VERIFY**: Tidak memiliki akses verifikasi.
 
-#### 2. Bidan Desa (`bidan_desa`) & Bidan Koordinator (`bidan_koordinator`)
+#### 2. Bidan Desa (`bidan_desa`)
 
-- **VIEW**: Bisa melihat **SEMUA** data (atau data di wilayahnya untuk Bidan Desa).
-- **VERIFY**: Memiliki tombol khusus **Approve (✅)** dan **Reject (❌)**.
-  - Jika **Reject**, wajib isi alasan penolakan.
-- **CREATE/UPDATE/DELETE**: Tidak memiliki akses input data pelayanan (Read-Only & Verify Only).
+- **VIEW**: Dapat melihat data dari semua practice place di desa yang di-assign.
+- **VERIFY**: Dapat `APPROVE` atau `REJECT` data `PENDING` di desanya.
+- **CREATE/UPDATE/DELETE**: Tidak memiliki akses input data pelayanan.
 
----
+#### 3. Bidan Koordinator (`bidan_koordinator`)
+
+- **VIEW**: Dapat melihat data dari seluruh desa.
+- **VERIFY**: Dapat `APPROVE` atau `REJECT` seluruh data `PENDING`.
+- **CREATE/UPDATE/DELETE**: Tidak memiliki akses input data pelayanan.
 
 ## 4. Frontend Implementation Guide
 
-### A. Mendapatkan Role User
+### A. Simpan Role User
 
-Setelah login, Backend mengirimkan response `accessToken` dan `user` object. Simpan `user.role` dan `user.position_user` di Global State / Context / LocalStorage.
+Setelah login, backend mengirim `token` dan objek `user`. Simpan `user.role` dan `user.position_user` di state aplikasi.
 
 ```javascript
-// Contoh data user di frontend
 const user = {
   id: "...",
   name: "Bidan Siti",
@@ -76,68 +73,60 @@ const user = {
 };
 ```
 
-### B. Route Guard (Contoh React)
+### B. Route Guard
 
-Gunakan Component Wrapper untuk membatasi akses URL.
+Gunakan route guard untuk membatasi akses halaman.
 
 ```javascript
-// PrivateRoute.js
 const PrivateRoute = ({ children, allowedRoles, allowedPositions }) => {
   const { user } = useAuth();
 
-  // 1. Cek Login
   if (!user) return <Navigate to="/login" />;
 
-  // 2. Cek Role (ADMIN / USER)
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" />;
   }
 
-  // 3. Cek Position (Jika user biasa)
-  if (user.role === 'USER' && allowedPositions && !allowedPositions.includes(user.position_user)) {
+  if (
+    user.role === "USER" &&
+    allowedPositions &&
+    !allowedPositions.includes(user.position_user)
+  ) {
     return <Navigate to="/unauthorized" />;
   }
 
   return children;
 };
-
-// App.js Usage
-<Route path="/users" element={
-  <PrivateRoute allowedRoles={['ADMIN']}>
-    <UserManagementPage />
-  </PrivateRoute>
-} />
-
-<Route path="/pemeriksaan-kehamilan" element={
-  <PrivateRoute allowedRoles={['USER']} allowedPositions={['bidan_praktik', 'bidan_desa', 'bidan_koordinator']}>
-    <PemeriksaanKehamilanPage />
-  </PrivateRoute>
-} />
 ```
 
-### C. Component Level Permission (Tombol Aksi)
+Halaman modul pelayanan boleh diakses oleh `bidan_praktik`, `bidan_desa`, dan `bidan_koordinator`, tetapi aksi tombolnya harus dibedakan.
 
-Sembunyikan tombol jika user tidak punya hak akses.
+### C. Component Level Permission
+
+Sembunyikan tombol aksi sesuai role.
 
 ```javascript
-// Contoh di Halaman Detail Pemeriksaan
 const DetailPemeriksaan = ({ data }) => {
   const { user } = useAuth();
 
-  const isBidanPraktik = user.position_user === "bidan_praktik";
-  const isVerifier = ["bidan_desa", "bidan_koordinator"].includes(
+  const canMutatePelayanan = user.position_user === "bidan_praktik";
+  const canVerifyPelayanan = ["bidan_desa", "bidan_koordinator"].includes(
     user.position_user,
   );
 
   return (
     <div>
-      {/* Tombol Edit: Hanya Bidan Praktik DAN status REJECTED */}
-      {isBidanPraktik && data.status_verifikasi === "REJECTED" && (
+      {canMutatePelayanan && <button onClick={handleCreate}>Input Data</button>}
+
+      {canMutatePelayanan && data.status_verifikasi === "REJECTED" && (
         <button onClick={handleEdit}>Edit Data</button>
       )}
 
-      {/* Tombol Verify: Hanya Verifier DAN status PENDING */}
-      {isVerifier && data.status_verifikasi === "PENDING" && (
+      {canMutatePelayanan && data.status_verifikasi !== "APPROVED" && (
+        <button onClick={handleDelete}>Hapus Data</button>
+      )}
+
+      {canVerifyPelayanan && data.status_verifikasi === "PENDING" && (
         <div className="verification-actions">
           <button onClick={() => requestVerify("APPROVED")}>Approve</button>
           <button onClick={() => requestVerify("REJECTED")}>Reject</button>

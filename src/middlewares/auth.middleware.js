@@ -111,3 +111,12 @@ export const authorizePosition = (...allowedPositions) => {
     next();
   };
 };
+
+// Shared access rules for pelayanan modules
+export const authorizePelayananMutation =
+  authorizePosition("bidan_praktik");
+
+export const authorizePelayananVerification = authorizePosition(
+  "bidan_desa",
+  "bidan_koordinator",
+);

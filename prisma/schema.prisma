@@ -37,13 +37,14 @@ model user {
   address       String        @db.VarChar(255)
   position_user PositionUser?
   village_id    String?
+  practice_id   String?
   role          Role          @default(USER)
   status_user   StatusUser    @default(INACTIVE)
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
   
   village        village?        @relation(fields: [village_id], references: [village_id])
-  practice_place practice_place?
+  practice_place practice_place? @relation(fields: [practice_id], references: [practice_id], onDelete: SetNull)
   verified_data  health_data[]   @relation("VerifiedData")
   
   // Audit trail relations for bidan praktik data
@@ -84,12 +85,11 @@ model practice_place {
   nama_praktik String   @db.VarChar(255)
   village_id   String
   alamat       String   @db.VarChar(255)
-  user_id      String   @unique
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
   
   village     village       @relation(fields: [village_id], references: [village_id])
-  user        user          @relation(fields: [user_id], references: [user_id])
+  users       user[]
   health_data health_data[]
   
   // Relations for bidan praktik data

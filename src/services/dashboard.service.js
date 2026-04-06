@@ -45,9 +45,6 @@ export const getPendingTasks = async (userId) => {
       practice_place: {
         include: {
           village: true,
-          user: {
-            select: { full_name: true },
-          },
         },
       },
       creator: {
@@ -86,8 +83,7 @@ export const getPendingTasks = async (userId) => {
     tanggal: item.created_at,
     pasien_nama: item.pasien.nama,
     pasien_nik: item.pasien.nik,
-    bidan_praktik:
-      item.practice_place?.user?.full_name || item.creator.full_name,
+    bidan_praktik: item.creator.full_name,
     lokasi_desa: item.practice_place?.village?.nama_desa || "-",
     status: "PENDING",
   });
@@ -118,11 +114,12 @@ export const getDashboardStats = async (userId) => {
   let whereClause = {};
 
   if (position_user === "bidan_praktik") {
-    const practicePlace = await prisma.practice_place.findUnique({
+    const practicePlace = await prisma.user.findUnique({
       where: { user_id: userId },
+      select: { practice_place: { select: { practice_id: true } } },
     });
-    if (practicePlace) {
-      whereClause.practice_id = practicePlace.practice_id;
+    if (practicePlace?.practice_place) {
+      whereClause.practice_id = practicePlace.practice_place.practice_id;
     }
   } else if (position_user === "bidan_desa") {
     if (village_id) {

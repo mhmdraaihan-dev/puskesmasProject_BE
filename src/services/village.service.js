@@ -56,11 +56,15 @@ export const getVillageByIdService = async (village_id) => {
             },
             practice_places: {
                 include: {
-                    user: {
+                    users: {
                         select: {
                             user_id: true,
                             full_name: true,
-                            email: true
+                            email: true,
+                            position_user: true
+                        },
+                        orderBy: {
+                            full_name: 'asc'
                         }
                     }
                 }

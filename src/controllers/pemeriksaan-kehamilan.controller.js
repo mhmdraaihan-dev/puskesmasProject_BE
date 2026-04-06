@@ -76,9 +76,11 @@ export const createPemeriksaanKehamilan = async (req, res) => {
 
     // Jika user adalah Bidan Praktik, otomatis ambil practice_id miliknya
     if (userRole === "bidan_praktik") {
-      const practicePlace = await prisma.practice_place.findUnique({
+      const currentUser = await prisma.user.findUnique({
         where: { user_id: userId },
+        include: { practice_place: true },
       });
+      const practicePlace = currentUser?.practice_place;
 
       if (!practicePlace) {
         return res.status(400).json({
@@ -101,7 +103,9 @@ export const createPemeriksaanKehamilan = async (req, res) => {
       data,
     });
   } catch (error) {
-    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 400;
+    const statusCode =
+      error.statusCode ||
+      (error.message.includes("tidak ditemukan") ? 404 : 400);
     res.status(statusCode).json({
       success: false,
       message: error.message,
@@ -115,7 +119,6 @@ export const createPemeriksaanKehamilan = async (req, res) => {
 export const updatePemeriksaanKehamilan = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.user_id;
     const data = await pemeriksaanKehamilanService.updatePemeriksaanKehamilan(
       id,
       req.body,
@@ -128,7 +131,9 @@ export const updatePemeriksaanKehamilan = async (req, res) => {
       data,
     });
   } catch (error) {
-    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 400;
+    const statusCode =
+      error.statusCode ||
+      (error.message.includes("tidak ditemukan") ? 404 : 400);
     res.status(statusCode).json({
       success: false,
       message: error.message,
@@ -152,7 +157,9 @@ export const deletePemeriksaanKehamilan = async (req, res) => {
       message: result.message,
     });
   } catch (error) {
-    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 500;
+    const statusCode =
+      error.statusCode ||
+      (error.message.includes("tidak ditemukan") ? 404 : 400);
     res.status(statusCode).json({
       success: false,
       message: error.message,

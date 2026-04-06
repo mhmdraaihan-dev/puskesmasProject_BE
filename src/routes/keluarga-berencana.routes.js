@@ -9,7 +9,8 @@ import {
 } from "../controllers/keluarga-berencana.controller.js";
 import {
   authenticateToken,
-  authorizePosition,
+  authorizePelayananMutation,
+  authorizePelayananVerification,
 } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
@@ -23,6 +24,7 @@ const router = express.Router();
 router.post(
   "/keluarga-berencana",
   authenticateToken,
+  authorizePelayananMutation,
   validate(createKeluargaBerencanaSchema),
   createKeluargaBerencana,
 );
@@ -35,12 +37,14 @@ router.get(
 router.put(
   "/keluarga-berencana/:id",
   authenticateToken,
+  authorizePelayananMutation,
   validate(updateKeluargaBerencanaSchema),
   updateKeluargaBerencana,
 );
 router.delete(
   "/keluarga-berencana/:id",
   authenticateToken,
+  authorizePelayananMutation,
   deleteKeluargaBerencana,
 );
 
@@ -48,7 +52,7 @@ router.delete(
 router.patch(
   "/keluarga-berencana/:id/verify",
   authenticateToken,
-  authorizePosition("bidan_desa", "bidan_koordinator"),
+  authorizePelayananVerification,
   verifyKeluargaBerencana,
 );
 

@@ -9,7 +9,8 @@ import {
 } from "../controllers/imunisasi.controller.js";
 import {
   authenticateToken,
-  authorizePosition,
+  authorizePelayananMutation,
+  authorizePelayananVerification,
 } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
@@ -23,6 +24,7 @@ const router = express.Router();
 router.post(
   "/imunisasi",
   authenticateToken,
+  authorizePelayananMutation,
   validate(createImunisasiSchema),
   createImunisasi,
 );
@@ -31,16 +33,22 @@ router.get("/imunisasi/:id", authenticateToken, getImunisasiById);
 router.put(
   "/imunisasi/:id",
   authenticateToken,
+  authorizePelayananMutation,
   validate(updateImunisasiSchema),
   updateImunisasi,
 );
-router.delete("/imunisasi/:id", authenticateToken, deleteImunisasi);
+router.delete(
+  "/imunisasi/:id",
+  authenticateToken,
+  authorizePelayananMutation,
+  deleteImunisasi,
+);
 
 // VERIFICATION: Only Bidan Desa / Koordinator
 router.patch(
   "/imunisasi/:id/verify",
   authenticateToken,
-  authorizePosition("bidan_desa", "bidan_koordinator"),
+  authorizePelayananVerification,
   verifyImunisasi,
 );
 

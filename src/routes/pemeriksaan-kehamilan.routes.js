@@ -9,7 +9,8 @@ import {
 } from "../controllers/pemeriksaan-kehamilan.controller.js";
 import {
   authenticateToken,
-  authorizePosition,
+  authorizePelayananMutation,
+  authorizePelayananVerification,
 } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
@@ -24,6 +25,7 @@ const router = express.Router();
 router.post(
   "/pemeriksaan-kehamilan",
   authenticateToken,
+  authorizePelayananMutation,
   validate(createPemeriksaanKehamilanSchema),
   createPemeriksaanKehamilan,
 );
@@ -40,12 +42,14 @@ router.get(
 router.put(
   "/pemeriksaan-kehamilan/:id",
   authenticateToken,
+  authorizePelayananMutation,
   validate(updatePemeriksaanKehamilanSchema),
   updatePemeriksaanKehamilan,
 );
 router.delete(
   "/pemeriksaan-kehamilan/:id",
   authenticateToken,
+  authorizePelayananMutation,
   deletePemeriksaanKehamilan,
 );
 
@@ -53,7 +57,7 @@ router.delete(
 router.patch(
   "/pemeriksaan-kehamilan/:id/verify",
   authenticateToken,
-  authorizePosition("bidan_desa", "bidan_koordinator"),
+  authorizePelayananVerification,
   verifyPemeriksaanKehamilan,
 );
 

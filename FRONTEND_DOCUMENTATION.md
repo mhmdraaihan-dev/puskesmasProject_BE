@@ -7,7 +7,7 @@ Sistem ini memiliki 4 jenis user dengan akses berbeda:
 1. **ADMIN** - Full access ke semua data
 2. **Bidan Praktik** - Lihat & kelola data dari practice place sendiri
 3. **Bidan Desa** - Lihat & verifikasi data dari semua practice place di desa yang di-assign
-4. **Bidan Koordinator** - Lihat semua data (fokus yang sudah APPROVED)
+4. **Bidan Koordinator** - Lihat & verifikasi semua data lintas desa
 
 ---
 
@@ -88,7 +88,10 @@ POST /api/practice-places
   "nama_praktik": "Praktek Bidan A",
   "village_id": "fdbc66ee-b684-4cb2-966a-e614fb1957d6",
   "alamat": "Jl. Contoh No. 123",
-  "user_id": "ad0f65c3-9e01-4da7-a44e-889609b70d06"  // ID user bidan praktik
+  "user_ids": [
+    "ad0f65c3-9e01-4da7-a44e-889609b70d06",
+    "b7b8c9d0-1111-2222-3333-444455556666"
+  ]
 }
 ```
 
@@ -197,14 +200,18 @@ if (position_user === "bidan_desa") {
   "nama_praktik": "Praktek Bidan A",
   "village_id": "fdbc66ee-b684-4cb2-966a-e614fb1957d6",
   "alamat": "Jl. Contoh No. 123",
-  "user_id": "ad0f65c3-9e01-4da7-a44e-889609b70d06"
+  "user_ids": [
+    "ad0f65c3-9e01-4da7-a44e-889609b70d06",
+    "b7b8c9d0-1111-2222-3333-444455556666"
+  ]
 }
 ```
 
 **⚠️ PENTING:**
 
-- `user_id` harus user dengan `position_user = "bidan_praktik"`
-- Satu user bidan praktik hanya bisa punya 1 practice place (one-to-one relation)
+- Setiap item pada `user_ids` harus user dengan `position_user = "bidan_praktik"`
+- Satu tempat praktik bisa memiliki banyak bidan praktik
+- Satu user bidan praktik hanya bisa terhubung ke 1 tempat praktik pada saat yang sama
 
 ---
 
@@ -450,6 +457,23 @@ Jika ada pertanyaan atau butuh endpoint tambahan, hubungi backend team.
 - API Base URL: `http://localhost:9090/api`
 - All endpoints require `Content-Type: application/json`
 - Protected endpoints require `Authorization: Bearer <TOKEN>`
+
+## Tambahan Akses Modul Pelayanan
+
+Untuk 4 modul pelayanan utama (`pemeriksaan-kehamilan`, `persalinan`, `keluarga-berencana`, `imunisasi`), frontend perlu membedakan hak akses berikut:
+
+- **Bidan Praktik**: boleh `create`, `update`, dan `delete` data pelayanan miliknya sendiri sesuai aturan status verifikasi.
+- **Bidan Desa**: hanya `view` dan `verify` data pelayanan di desa yang di-assign.
+- **Bidan Koordinator**: hanya `view` dan `verify` data pelayanan dari semua desa.
+- **ADMIN**: tidak menjadi inputter maupun verifier pada 4 modul pelayanan.
+
+### Aturan Tombol Aksi
+
+- Tampilkan tombol `Input Data`, `Edit`, dan `Hapus` hanya untuk `bidan_praktik`.
+- Sembunyikan seluruh tombol mutasi untuk `bidan_desa` dan `bidan_koordinator`.
+- Tampilkan tombol `Approve` dan `Reject` hanya untuk `bidan_desa` dan `bidan_koordinator` saat status data masih `PENDING`.
+- Untuk `bidan_praktik`, tombol `Edit` hanya muncul saat status `REJECTED`.
+- Untuk `bidan_praktik`, tombol `Hapus` hanya muncul saat status `PENDING` atau `REJECTED`.
 
 ---
 

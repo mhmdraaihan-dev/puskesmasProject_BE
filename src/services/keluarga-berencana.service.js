@@ -1,5 +1,13 @@
 import prisma from "../../lib/prisma.js";
 
+const ensurePelayananMutationAccess = (user, action) => {
+  if (user.position_user !== "bidan_praktik") {
+    const error = new Error(`Hanya bidan praktik yang dapat ${action}`);
+    error.statusCode = 403;
+    throw error;
+  }
+};
+
 /**
  * Get all keluarga berencana with filtering and pagination
  */
@@ -239,6 +247,8 @@ export const createKeluargaBerencana = async (payload, user) => {
 
   const userId = user.user_id;
 
+  ensurePelayananMutationAccess(user, "membuat data keluarga berencana");
+
   // Validate practice_place exists and check access
   const practicePlace = await prisma.practice_place.findUnique({
     where: { practice_id },
@@ -323,6 +333,8 @@ export const updateKeluargaBerencana = async (id, payload, user) => {
   } = payload;
 
   const userId = user.user_id;
+
+  ensurePelayananMutationAccess(user, "mengubah data keluarga berencana");
 
   // Check if data exists
   const existing = await prisma.keluarga_berencana.findUnique({
@@ -414,6 +426,8 @@ export const updateKeluargaBerencana = async (id, payload, user) => {
  * Delete keluarga berencana
  */
 export const deleteKeluargaBerencana = async (id, user) => {
+  ensurePelayananMutationAccess(user, "menghapus data keluarga berencana");
+
   // Check if data exists
   const existing = await prisma.keluarga_berencana.findUnique({
     where: { id },
