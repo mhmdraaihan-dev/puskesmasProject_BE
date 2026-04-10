@@ -116,7 +116,4 @@ export const authorizePosition = (...allowedPositions) => {
 export const authorizePelayananMutation =
   authorizePosition("bidan_praktik");
 
-export const authorizePelayananVerification = authorizePosition(
-  "bidan_desa",
-  "bidan_koordinator",
-);
+export const authorizePelayananVerification = authorizePosition("bidan_desa");

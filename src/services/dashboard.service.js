@@ -1,138 +1,174 @@
 import prisma from "../../lib/prisma.js";
+import {
+  getDashboardFeedItems,
+  getPelayananUserScope,
+} from "./pelayanan-access.service.js";
 
-/**
- * Get aggregated pending tasks for verification
- * Used by: Bidan Desa & Bidan Koordinator
- */
-export const getPendingTasks = async (userId) => {
+const parseStatusQuery = (status, fallbackStatuses) => {
+  if (!status) {
+    return fallbackStatuses;
+  }
+
+  return status
+    .split(",")
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+};
+
+const getDashboardUser = async (userId) => {
   const user = await prisma.user.findUnique({
     where: { user_id: userId },
-    include: { village: true },
+    include: { village: true, practice_place: true },
   });
 
-  if (!user) throw new Error("User not found");
-
-  const { position_user, village_id } = user;
-
-  // Validasi Role
-  if (position_user !== "bidan_desa" && position_user !== "bidan_koordinator") {
-    throw new Error(
-      "Unauthorized: Only Bidan Desa/Koordinator can view pending tasks",
-    );
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
   }
 
-  // Filter Logic
-  let villageFilter = {};
-  if (position_user === "bidan_desa") {
-    if (!village_id) {
-      return []; // Unassigned Bidan Desa has no tasks
-    }
-    villageFilter = {
-      practice_place: {
-        village_id: village_id,
-      },
-    };
+  return user;
+};
+
+const getDistinctPasienCountByPractice = async (practiceId) => {
+  if (!practiceId) {
+    return 0;
   }
 
-  const commonSelect = {
-    include: {
-      pasien: {
-        select: {
-          nama: true,
-          nik: true,
-        },
-      },
-      practice_place: {
-        include: {
-          village: true,
-        },
-      },
-      creator: {
-        select: { full_name: true },
-      },
-    },
-  };
+  const pasienIds = new Set();
 
-  const [pendingKehamilan, pendingPersalinan, pendingKB, pendingImunisasi] =
-    await Promise.all([
-      prisma.pemeriksaan_kehamilan.findMany({
-        where: { status_verifikasi: "PENDING", ...villageFilter },
-        ...commonSelect,
-        orderBy: { created_at: "desc" },
-      }),
-      prisma.persalinan.findMany({
-        where: { status_verifikasi: "PENDING", ...villageFilter },
-        ...commonSelect,
-        orderBy: { created_at: "desc" },
-      }),
-      prisma.keluarga_berencana.findMany({
-        where: { status_verifikasi: "PENDING", ...villageFilter },
-        ...commonSelect,
-        orderBy: { created_at: "desc" },
-      }),
-      prisma.imunisasi.findMany({
-        where: { status_verifikasi: "PENDING", ...villageFilter },
-        ...commonSelect,
-        orderBy: { created_at: "desc" },
-      }),
-    ]);
+  const [kehamilan, persalinan, kb, imunisasi] = await Promise.all([
+    prisma.pemeriksaan_kehamilan.findMany({
+      where: { practice_id: practiceId },
+      select: { pasien_id: true },
+    }),
+    prisma.persalinan.findMany({
+      where: { practice_id: practiceId },
+      select: { pasien_id: true },
+    }),
+    prisma.keluarga_berencana.findMany({
+      where: { practice_id: practiceId },
+      select: { pasien_id: true },
+    }),
+    prisma.imunisasi.findMany({
+      where: { practice_id: practiceId },
+      select: { pasien_id: true },
+    }),
+  ]);
 
-  const formatTask = (item, type) => ({
-    id: item.id,
-    type: type,
-    tanggal: item.created_at,
-    pasien_nama: item.pasien.nama,
-    pasien_nik: item.pasien.nik,
-    bidan_praktik: item.creator.full_name,
-    lokasi_desa: item.practice_place?.village?.nama_desa || "-",
-    status: "PENDING",
+  [kehamilan, persalinan, kb, imunisasi].forEach((rows) => {
+    rows.forEach((row) => pasienIds.add(row.pasien_id));
   });
 
-  const tasks = [
-    ...pendingKehamilan.map((i) => formatTask(i, "KEHAMILAN")),
-    ...pendingPersalinan.map((i) => formatTask(i, "PERSALINAN")),
-    ...pendingKB.map((i) => formatTask(i, "KB")),
-    ...pendingImunisasi.map((i) => formatTask(i, "IMUNISASI")),
-  ];
-
-  return tasks.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+  return pasienIds.size;
 };
 
 /**
- * Get aggregated statistics for dashboard charts/cards
+ * Get aggregated pending tasks for verification.
+ * Used by: Bidan Desa only.
  */
-export const getDashboardStats = async (userId) => {
-  const user = await prisma.user.findUnique({
-    where: { user_id: userId },
-    include: { village: true },
-  });
+export const getPendingTasks = async (userId, filters = {}) => {
+  const user = await getDashboardUser(userId);
 
-  if (!user) throw new Error("User not found");
-
-  const { position_user, village_id } = user;
-
-  let whereClause = {};
-
-  if (position_user === "bidan_praktik") {
-    const practicePlace = await prisma.user.findUnique({
-      where: { user_id: userId },
-      select: { practice_place: { select: { practice_id: true } } },
-    });
-    if (practicePlace?.practice_place) {
-      whereClause.practice_id = practicePlace.practice_place.practice_id;
-    }
-  } else if (position_user === "bidan_desa") {
-    if (village_id) {
-      whereClause.practice_place = {
-        village_id: village_id,
-      };
-    }
+  if (user.position_user !== "bidan_desa") {
+    const error = new Error(
+      "Unauthorized: Only Bidan Desa can view pending tasks",
+    );
+    error.statusCode = 403;
+    throw error;
   }
 
-  const totalPasien = await prisma.pasien.count();
+  if (!user.village_id) {
+    return [];
+  }
+
+  return getDashboardFeedItems({
+    villageId: user.village_id,
+    statuses: ["PENDING"],
+    module: filters.module,
+    limit: filters.limit,
+  });
+};
+
+/**
+ * Get village history feed for bidan desa.
+ */
+export const getBidanDesaHistory = async (userId, filters = {}) => {
+  const user = await getDashboardUser(userId);
+
+  if (user.position_user !== "bidan_desa") {
+    const error = new Error("Unauthorized: Only Bidan Desa can view history");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!user.village_id) {
+    return [];
+  }
+
+  return getDashboardFeedItems({
+    villageId: user.village_id,
+    statuses: parseStatusQuery(filters.status, ["APPROVED", "REJECTED"]),
+    module: filters.module,
+    limit: filters.limit,
+  });
+};
+
+/**
+ * Get approved feed for bidan koordinator.
+ */
+export const getKoordinatorApprovedFeed = async (userId, filters = {}) => {
+  const user = await getDashboardUser(userId);
+
+  if (user.position_user !== "bidan_koordinator") {
+    const error = new Error(
+      "Unauthorized: Only Bidan Koordinator can view approved feed",
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return getDashboardFeedItems({
+    villageId: filters.village_id || null,
+    statuses: ["APPROVED"],
+    module: filters.module,
+    limit: filters.limit,
+  });
+};
+
+/**
+ * Get aggregated statistics for dashboard charts/cards.
+ */
+export const getDashboardStats = async (userId) => {
+  const user = await getDashboardUser(userId);
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
+
+  let whereClause = {};
+  let totalPasien = await prisma.pasien.count();
+
+  if (user.position_user === "bidan_praktik") {
+    const { practiceId } = await getPelayananUserScope(user);
+
+    if (practiceId) {
+      whereClause.practice_id = practiceId;
+      totalPasien = await getDistinctPasienCountByPractice(practiceId);
+    } else {
+      totalPasien = 0;
+    }
+  } else if (user.position_user === "bidan_desa") {
+    if (user.village_id) {
+      whereClause.practice_place = {
+        village_id: user.village_id,
+      };
+      totalPasien = await prisma.pasien.count({
+        where: { village_id: user.village_id },
+      });
+    } else {
+      totalPasien = 0;
+    }
+  }
 
   const stats = await prisma.$transaction([
     prisma.pemeriksaan_kehamilan.count({

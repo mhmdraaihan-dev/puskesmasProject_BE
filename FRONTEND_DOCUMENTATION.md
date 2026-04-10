@@ -6,8 +6,8 @@ Sistem ini memiliki 4 jenis user dengan akses berbeda:
 
 1. **ADMIN** - Full access ke semua data
 2. **Bidan Praktik** - Lihat & kelola data dari practice place sendiri
-3. **Bidan Desa** - Lihat & verifikasi data dari semua practice place di desa yang di-assign
-4. **Bidan Koordinator** - Lihat & verifikasi semua data lintas desa
+3. **Bidan Desa** - Lihat riwayat desa dan verifikasi data `PENDING` dari semua practice place di desa yang di-assign
+4. **Bidan Koordinator** - Lihat data `APPROVED` lintas desa dalam mode read-only
 
 ---
 
@@ -25,6 +25,21 @@ Village (Desa)
     └── Health Data (Data kesehatan dari practice place ini)
         └── practice_id: "zzz" (Foreign Key ke Practice Place)
 ```
+
+### Update Role Flow 2026-04
+
+- Satu tempat praktik bisa memiliki banyak bidan praktik melalui field `user_ids`.
+- `bidan_desa` adalah satu-satunya role yang boleh `approve` / `reject`.
+- `bidan_desa` dashboard sekarang perlu 2 feed:
+  - `GET /api/dashboard/pending-tasks` untuk antrean `PENDING`
+  - `GET /api/dashboard/history` untuk riwayat `APPROVED` dan `REJECTED`
+- `bidan_koordinator` tidak melakukan verifikasi.
+- `bidan_koordinator` dashboard memakai `GET /api/dashboard/approved-feed`.
+- List modul tanpa query `status_verifikasi`:
+  - `bidan_praktik`: data practice place sendiri
+  - `bidan_desa`: `APPROVED` + `REJECTED`
+  - `bidan_koordinator`: `APPROVED`
+- Jika data `REJECTED`, `bidan_praktik` mengedit record yang sama lalu simpan. Status otomatis kembali ke `PENDING`.
 
 ---
 
@@ -223,8 +238,8 @@ if (position_user === "bidan_desa") {
 | --------------------- | ----------------------------------------------------- | -------------------------- |
 | **ADMIN**             | Semua data                                            | Tidak ada filter           |
 | **Bidan Praktik**     | Data dari practice place sendiri                      | Harus punya practice place |
-| **Bidan Desa**        | Data dari semua practice place di desa yang di-assign | Harus punya village_id     |
-| **Bidan Koordinator** | Semua data (default: APPROVED saja)                   | Bisa filter status         |
+| **Bidan Desa**        | Data dari semua practice place di desa yang di-assign | Default list: `APPROVED` + `REJECTED` |
+| **Bidan Koordinator** | Semua data `APPROVED` lintas desa                     | Read-only, tanpa verify    |
 
 ### Endpoint Health Data:
 
@@ -463,14 +478,15 @@ Jika ada pertanyaan atau butuh endpoint tambahan, hubungi backend team.
 Untuk 4 modul pelayanan utama (`pemeriksaan-kehamilan`, `persalinan`, `keluarga-berencana`, `imunisasi`), frontend perlu membedakan hak akses berikut:
 
 - **Bidan Praktik**: boleh `create`, `update`, dan `delete` data pelayanan miliknya sendiri sesuai aturan status verifikasi.
-- **Bidan Desa**: hanya `view` dan `verify` data pelayanan di desa yang di-assign.
-- **Bidan Koordinator**: hanya `view` dan `verify` data pelayanan dari semua desa.
+- **Bidan Desa**: `view`, `verify`, dan melihat riwayat keputusan data pelayanan di desa yang di-assign.
+- **Bidan Koordinator**: hanya `view` data pelayanan `APPROVED` dari semua desa.
 - **ADMIN**: tidak menjadi inputter maupun verifier pada 4 modul pelayanan.
 
 ### Aturan Tombol Aksi
 
 - Tampilkan tombol `Input Data`, `Edit`, dan `Hapus` hanya untuk `bidan_praktik`.
-- Sembunyikan seluruh tombol mutasi untuk `bidan_desa` dan `bidan_koordinator`.
+- Tampilkan tombol `Approve` dan `Reject` hanya untuk `bidan_desa`.
+- Sembunyikan seluruh tombol mutasi dan verifikasi untuk `bidan_koordinator`.
 - Tampilkan tombol `Approve` dan `Reject` hanya untuk `bidan_desa` dan `bidan_koordinator` saat status data masih `PENDING`.
 - Untuk `bidan_praktik`, tombol `Edit` hanya muncul saat status `REJECTED`.
 - Untuk `bidan_praktik`, tombol `Hapus` hanya muncul saat status `PENDING` atau `REJECTED`.

@@ -44,21 +44,48 @@ Hampir semua endpoint membutuhkan header `Authorization: Bearer <accessToken>`.
 
 ## 2. Dashboard
 
-### 2.1 Pending Tasks (Verifikasi)
+### 2.1 Pending Tasks (Verifikasi Desa)
 
 Mengambil daftar tugas yang menunggu persetujuan (PENDING) dari 4 modul pelayanan.
 
 - **URL**: `/api/dashboard/pending-tasks`
 - **Method**: `GET`
-- **Access**: Bidan Desa (filter desa), Bidan Koordinator (all).
+- **Access**: Bidan Desa saja.
+- **Query Parameters**:
+  - `limit` (opsional)
+  - `module`: `kehamilan` | `persalinan` | `keluarga-berencana` | `kb` | `imunisasi`
 
-### 2.2 Stats (Akumulasi Data)
+### 2.2 History Feed Bidan Desa
+
+Mengambil riwayat keputusan pelayanan untuk desa yang di-assign. Default status adalah `APPROVED` dan `REJECTED`.
+
+- **URL**: `/api/dashboard/history`
+- **Method**: `GET`
+- **Access**: Bidan Desa saja.
+- **Query Parameters**:
+  - `limit` (opsional)
+  - `module`: `kehamilan` | `persalinan` | `keluarga-berencana` | `kb` | `imunisasi`
+  - `status`: `APPROVED`, `REJECTED`, atau kombinasi comma-separated seperti `APPROVED,REJECTED`
+
+### 2.3 Approved Feed Bidan Koordinator
+
+Mengambil feed lintas desa yang hanya berisi data pelayanan berstatus `APPROVED`.
+
+- **URL**: `/api/dashboard/approved-feed`
+- **Method**: `GET`
+- **Access**: Bidan Koordinator saja.
+- **Query Parameters**:
+  - `limit` (opsional)
+  - `module`: `kehamilan` | `persalinan` | `keluarga-berencana` | `kb` | `imunisasi`
+  - `village_id` (opsional)
+
+### 2.4 Stats (Akumulasi Data)
 
 Mengambil angka statistik total dan bulan ini.
 
 - **URL**: `/api/dashboard/stats`
 - **Method**: `GET`
-- **Access**: Semua Role (Data terfilter otomatis sesuai wilayahnya).
+- **Access**: Semua Role (Data terfilter otomatis sesuai role dan wilayahnya).
 
 ---
 
@@ -73,6 +100,11 @@ Mengambil daftar data kesehatan dengan berbagai filter.
 - **URL**: `/api/{modul}`
 - **Method**: `GET`
 - **Access**: Semua user terautentikasi sesuai filter wilayah/role.
+- **Default status per role jika `status_verifikasi` tidak dikirim**:
+  - `ADMIN`: semua status
+  - `bidan_praktik`: semua status di practice place miliknya
+  - `bidan_desa`: `APPROVED` + `REJECTED`
+  - `bidan_koordinator`: `APPROVED`
 - **Query Parameters**:
   - `page`, `limit` (Pagination)
   - `status_verifikasi`: `PENDING` | `APPROVED` | `REJECTED`
@@ -80,9 +112,12 @@ Mengambil daftar data kesehatan dengan berbagai filter.
   - `year`: (YYYY) Filter tahun rekapitulasi.
   - `search`: Cari berdasarkan Nama Pasien atau NIK.
   - `pasien_id`: Cari riwayat pasien tertentu.
-  - `practice_id`: Filter per tempat praktik (untuk Koordinator).
+  - `practice_id`: Filter per tempat praktik.
   - `village_id`: Filter per Desa (Hanya Bidan Koordinator / Admin).
-- **Security**: Otomatis menyaring data berdasarkan desa/tempat praktik user yang login (kecuali Koordinator/Admin).
+- **Security**:
+  - `bidan_praktik`: otomatis hanya data dari practice place sendiri
+  - `bidan_desa`: otomatis hanya data dari desa yang di-assign
+  - `bidan_koordinator`: lintas desa, default `APPROVED` only
 
 ### 3.2 Create Data (Inputter)
 
@@ -109,7 +144,7 @@ Mengambil daftar data kesehatan dengan berbagai filter.
 
 - **URL**: `/api/{modul}/:id/verify`
 - **Method**: `PATCH`
-- **Access**: Bidan Desa / Koordinator.
+- **Access**: Bidan Desa.
 - **Body**:
 
 ```json
@@ -157,10 +192,11 @@ Untuk fitur rekapitulasi, gunakan endpoint **3.1 (List & Filter Data)** dengan p
 
 Aplikasi menerapkan penguncian data berdasarkan wilayah (Desa).
 
-- **ADMIN & Bidan Koordinator**: Memiliki akses ke **seluruh desa**.
+- **ADMIN**: Memiliki akses ke **seluruh desa**.
+- **Bidan Koordinator**: Memiliki akses view ke data `APPROVED` di **seluruh desa**.
 - **Bidan Desa**: Hanya bisa mengakses/verifikasi data di **Desa yang ditugaskan**.
 - **Bidan Desa**: Tidak bisa membuat, mengubah, atau menghapus data pada **4 modul pelayanan utama**.
-- **Bidan Praktik**: Hanya bisa mengakses/input data di **Tempat Praktik (Desa) miliknya**.
+- **Bidan Praktik**: Hanya bisa mengakses/input data di **Tempat Praktik miliknya**.
 - **Midwife Unassigned**: Jika user belum di-assign ke Desa atau Tempat Praktik, maka akses ke data kesehatan (Pasien, Kehamilan, dll) akan **DIBLOKIR** sama sekali.
 
 ---

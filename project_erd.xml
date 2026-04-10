@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database name="puskesmas_project">
+    <tables>
+        <table name="users">
+            <column name="user_id" type="String" pk="true" />
+            <column name="full_name" type="String" />
+            <column name="password" type="String" />
+            <column name="phone_number" type="String" nullable="true" />
+            <column name="email" type="String" unique="true" />
+            <column name="address" type="String" />
+            <column name="position_user" type="PositionUser" nullable="true" />
+            <column name="village_id" type="String" nullable="true" fk="true" />
+            <column name="role" type="Role" default="USER" />
+            <column name="status_user" type="StatusUser" default="INACTIVE" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="villages">
+            <column name="village_id" type="String" pk="true" />
+            <column name="nama_desa" type="String" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="practice_places">
+            <column name="practice_id" type="String" pk="true" />
+            <column name="nama_praktik" type="String" />
+            <column name="village_id" type="String" fk="true" />
+            <column name="alamat" type="String" />
+            <column name="user_id" type="String" unique="true" fk="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="health_data">
+            <column name="data_id" type="String" pk="true" />
+            <column name="practice_id" type="String" fk="true" />
+            <column name="nama_pasien" type="String" />
+            <column name="umur_pasien" type="Int" nullable="true" />
+            <column name="jenis_data" type="String" />
+            <column name="catatan" type="String" nullable="true" />
+            <column name="tanggal_periksa" type="DateTime" default="now()" />
+            <column name="status_verifikasi" type="VerificationStatus" default="PENDING" />
+            <column name="diverifikasi_oleh" type="String" nullable="true" fk="true" />
+            <column name="tanggal_verifikasi" type="DateTime" nullable="true" />
+            <column name="alasan_penolakan" type="String" nullable="true" />
+            <column name="jumlah_revisi" type="Int" default="0" />
+            <column name="alasan_reject_terakhir" type="String" nullable="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="pasien">
+            <column name="pasien_id" type="String" pk="true" />
+            <column name="nik" type="String" unique="true" />
+            <column name="nama" type="String" />
+            <column name="alamat_lengkap" type="String" />
+            <column name="tanggal_lahir" type="DateTime" />
+            <column name="village_id" type="String" nullable="true" fk="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="pemeriksaan_kehamilan">
+            <column name="id" type="String" pk="true" />
+            <column name="practice_id" type="String" fk="true" />
+            <column name="pasien_id" type="String" fk="true" />
+            <column name="tanggal" type="DateTime" default="now()" />
+            <column name="gpa" type="String" />
+            <column name="umur_kehamilan" type="Int" />
+            <column name="status_tt" type="String" />
+            <column name="jenis_kunjungan" type="String" />
+            <column name="td" type="String" />
+            <column name="lila" type="Float" nullable="true" />
+            <column name="bb" type="Float" nullable="true" />
+            <column name="resti" type="String" />
+            <column name="catatan" type="String" nullable="true" />
+            <column name="status_verifikasi" type="VerificationStatus" default="PENDING" />
+            <column name="alasan_penolakan" type="String" nullable="true" />
+            <column name="tanggal_verifikasi" type="DateTime" nullable="true" />
+            <column name="diverifikasi_oleh" type="String" nullable="true" fk="true" />
+            <column name="created_by" type="String" fk="true" />
+            <column name="updated_by" type="String" nullable="true" fk="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="ceklab_reports">
+            <column name="id" type="String" pk="true" />
+            <column name="pemeriksaan_kehamilan_id" type="String" unique="true" fk="true" />
+            <column name="hiv" type="Boolean" default="false" />
+            <column name="hbsag" type="Boolean" default="false" />
+            <column name="sifilis" type="Boolean" default="false" />
+            <column name="hb" type="Float" nullable="true" />
+            <column name="golongan_darah" type="String" nullable="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="persalinan">
+            <column name="id" type="String" pk="true" />
+            <column name="practice_id" type="String" fk="true" />
+            <column name="pasien_id" type="String" fk="true" />
+            <column name="tanggal_partus" type="DateTime" />
+            <column name="gravida" type="Int" />
+            <column name="para" type="Int" />
+            <column name="abortus" type="Int" />
+            <column name="vit_k" type="Boolean" default="false" />
+            <column name="hb_0" type="Boolean" default="false" />
+            <column name="vit_a_bufas" type="Boolean" default="false" />
+            <column name="catatan" type="String" nullable="true" />
+            <column name="status_verifikasi" type="VerificationStatus" default="PENDING" />
+            <column name="alasan_penolakan" type="String" nullable="true" />
+            <column name="tanggal_verifikasi" type="DateTime" nullable="true" />
+            <column name="diverifikasi_oleh" type="String" nullable="true" fk="true" />
+            <column name="created_by" type="String" fk="true" />
+            <column name="updated_by" type="String" nullable="true" fk="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="keadaan_ibu_persalinan">
+            <column name="id" type="String" pk="true" />
+            <column name="persalinan_id" type="String" unique="true" fk="true" />
+            <column name="baik" type="Boolean" default="true" />
+            <column name="hap" type="Boolean" default="false" />
+            <column name="partus_lama" type="Boolean" default="false" />
+            <column name="pre_eklamsi" type="Boolean" default="false" />
+            <column name="hidup" type="Boolean" default="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="keadaan_bayi_persalinan">
+            <column name="id" type="String" pk="true" />
+            <column name="persalinan_id" type="String" unique="true" fk="true" />
+            <column name="pb" type="Float" nullable="true" />
+            <column name="bb" type="Float" nullable="true" />
+            <column name="jenis_kelamin" type="String" />
+            <column name="asfiksia" type="Boolean" default="false" />
+            <column name="rds" type="Boolean" default="false" />
+            <column name="cacat_bawaan" type="Boolean" default="false" />
+            <column name="keterangan_cacat" type="String" nullable="true" />
+            <column name="hidup" type="Boolean" default="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="keluarga_berencana">
+            <column name="id" type="String" pk="true" />
+            <column name="practice_id" type="String" fk="true" />
+            <column name="pasien_id" type="String" fk="true" />
+            <column name="tanggal_kunjungan" type="DateTime" default="now()" />
+            <column name="jumlah_anak_laki" type="Int" default="0" />
+            <column name="jumlah_anak_perempuan" type="Int" default="0" />
+            <column name="at" type="Boolean" default="false" />
+            <column name="alat_kontrasepsi" type="String" />
+            <column name="keterangan" type="String" nullable="true" />
+            <column name="status_verifikasi" type="VerificationStatus" default="PENDING" />
+            <column name="alasan_penolakan" type="String" nullable="true" />
+            <column name="tanggal_verifikasi" type="DateTime" nullable="true" />
+            <column name="diverifikasi_oleh" type="String" nullable="true" fk="true" />
+            <column name="created_by" type="String" fk="true" />
+            <column name="updated_by" type="String" nullable="true" fk="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+        <table name="imunisasi">
+            <column name="id" type="String" pk="true" />
+            <column name="practice_id" type="String" fk="true" />
+            <column name="pasien_id" type="String" fk="true" />
+            <column name="tgl_imunisasi" type="DateTime" default="now()" />
+            <column name="berat_badan" type="Float" />
+            <column name="suhu_badan" type="Float" nullable="true" />
+            <column name="nama_orangtua" type="String" />
+            <column name="jenis_imunisasi" type="String" />
+            <column name="catatan" type="String" nullable="true" />
+            <column name="status_verifikasi" type="VerificationStatus" default="PENDING" />
+            <column name="alasan_penolakan" type="String" nullable="true" />
+            <column name="tanggal_verifikasi" type="DateTime" nullable="true" />
+            <column name="diverifikasi_oleh" type="String" nullable="true" fk="true" />
+            <column name="created_by" type="String" fk="true" />
+            <column name="updated_by" type="String" nullable="true" fk="true" />
+            <column name="created_at" type="DateTime" default="now()" />
+            <column name="updated_at" type="DateTime" />
+        </table>
+    </tables>
+    <relationships>
+        <relationship fromTable="users" fromColumn="village_id" toTable="villages" toColumn="village_id" />
+        <relationship fromTable="practice_places" fromColumn="village_id" toTable="villages" toColumn="village_id" />
+        <relationship fromTable="practice_places" fromColumn="user_id" toTable="users" toColumn="user_id" />
+        <relationship fromTable="health_data" fromColumn="practice_id" toTable="practice_places" toColumn="practice_id" />
+        <relationship fromTable="health_data" fromColumn="diverifikasi_oleh" toTable="users" toColumn="user_id" />
+        <relationship fromTable="pasien" fromColumn="village_id" toTable="villages" toColumn="village_id" />
+        <relationship fromTable="pemeriksaan_kehamilan" fromColumn="practice_id" toTable="practice_places" toColumn="practice_id" />
+        <relationship fromTable="pemeriksaan_kehamilan" fromColumn="pasien_id" toTable="pasien" toColumn="pasien_id" />
+        <relationship fromTable="pemeriksaan_kehamilan" fromColumn="created_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="pemeriksaan_kehamilan" fromColumn="updated_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="pemeriksaan_kehamilan" fromColumn="diverifikasi_oleh" toTable="users" toColumn="user_id" />
+        <relationship fromTable="ceklab_reports" fromColumn="pemeriksaan_kehamilan_id" toTable="pemeriksaan_kehamilan" toColumn="id" />
+        <relationship fromTable="persalinan" fromColumn="practice_id" toTable="practice_places" toColumn="practice_id" />
+        <relationship fromTable="persalinan" fromColumn="pasien_id" toTable="pasien" toColumn="pasien_id" />
+        <relationship fromTable="persalinan" fromColumn="created_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="persalinan" fromColumn="updated_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="persalinan" fromColumn="diverifikasi_oleh" toTable="users" toColumn="user_id" />
+        <relationship fromTable="keadaan_ibu_persalinan" fromColumn="persalinan_id" toTable="persalinan" toColumn="id" />
+        <relationship fromTable="keadaan_bayi_persalinan" fromColumn="persalinan_id" toTable="persalinan" toColumn="id" />
+        <relationship fromTable="keluarga_berencana" fromColumn="practice_id" toTable="practice_places" toColumn="practice_id" />
+        <relationship fromTable="keluarga_berencana" fromColumn="pasien_id" toTable="pasien" toColumn="pasien_id" />
+        <relationship fromTable="keluarga_berencana" fromColumn="created_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="keluarga_berencana" fromColumn="updated_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="keluarga_berencana" fromColumn="diverifikasi_oleh" toTable="users" toColumn="user_id" />
+        <relationship fromTable="imunisasi" fromColumn="practice_id" toTable="practice_places" toColumn="practice_id" />
+        <relationship fromTable="imunisasi" fromColumn="pasien_id" toTable="pasien" toColumn="pasien_id" />
+        <relationship fromTable="imunisasi" fromColumn="created_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="imunisasi" fromColumn="updated_by" toTable="users" toColumn="user_id" />
+        <relationship fromTable="imunisasi" fromColumn="diverifikasi_oleh" toTable="users" toColumn="user_id" />
+    </relationships>
+</database>

@@ -1,4 +1,12 @@
 import prisma from "../../lib/prisma.js";
+import {
+  applyPelayananRoleScope,
+  applyPelayananStatusFilter,
+  ensurePelayananDetailAccess,
+  ensurePelayananPracticeMutationAccess,
+  ensurePelayananVerificationAccess,
+  getPelayananUserScope,
+} from "./pelayanan-access.service.js";
 
 const ensurePelayananMutationAccess = (user, action) => {
   if (user.position_user !== "bidan_praktik") {
@@ -29,17 +37,13 @@ export const getAllPersalinan = async (filters = {}, user) => {
   const skip = (page - 1) * limit;
   const where = {};
 
-  // Logic Filtering per Desa
   if (user.role !== "ADMIN" && user.position_user !== "bidan_koordinator") {
-    const currentUser = await prisma.user.findUnique({
-      where: { user_id: user.user_id },
-      include: { practice_place: true },
-    });
+    const scope = await getPelayananUserScope(user);
 
-    const userVillageId =
-      currentUser.village_id || currentUser.practice_place?.village_id;
-
-    if (!userVillageId) {
+    if (
+      (user.position_user === "bidan_praktik" && !scope.practiceId) ||
+      (user.position_user === "bidan_desa" && !scope.villageId)
+    ) {
       return {
         data: [],
         pagination: {
@@ -51,22 +55,12 @@ export const getAllPersalinan = async (filters = {}, user) => {
       };
     }
 
-    where.practice_place = {
-      village_id: userVillageId,
-    };
+    applyPelayananRoleScope(where, user, filters, scope);
   } else {
-    // Untuk Admin & Bidan Koordinator, filter by village_id
-    if (filters.village_id) {
-      where.practice_place = {
-        village_id: filters.village_id,
-      };
-    }
+    applyPelayananRoleScope(where, user, filters);
   }
 
-  // Filter by status_verifikasi
-  if (status_verifikasi) {
-    where.status_verifikasi = status_verifikasi;
-  }
+  applyPelayananStatusFilter(where, status_verifikasi, user);
 
   // Filter by practice_id
   if (practice_id) {
@@ -208,24 +202,12 @@ export const getPersalinanById = async (id, user) => {
     throw new Error("Data persalinan tidak ditemukan");
   }
 
-  // Security Check: Village access
-  if (user.role !== "ADMIN" && user.position_user !== "bidan_koordinator") {
-    const currentUser = await prisma.user.findUnique({
-      where: { user_id: user.user_id },
-      include: { practice_place: true },
-    });
-
-    const userVillageId =
-      currentUser.village_id || currentUser.practice_place?.village_id;
-
-    if (!userVillageId) {
-      throw new Error("Anda belum ditugaskan ke Desa/Tempat Praktik manapun");
-    }
-
-    if (data.practice_place.village_id !== userVillageId) {
-      throw new Error("Anda tidak memiliki akses ke data persalinan desa lain");
-    }
-  }
+  await ensurePelayananDetailAccess(
+    user,
+    data.practice_place,
+    data.status_verifikasi,
+    "Anda tidak memiliki akses ke data persalinan desa lain",
+  );
 
   return data;
 };
@@ -263,25 +245,11 @@ export const createPersalinan = async (payload, user) => {
   }
 
   // Security Check: Village access
-  if (user.role !== "ADMIN" && user.position_user !== "bidan_koordinator") {
-    const currentUser = await prisma.user.findUnique({
-      where: { user_id: userId },
-      include: { practice_place: true },
-    });
-
-    const userVillageId =
-      currentUser.village_id || currentUser.practice_place?.village_id;
-
-    if (!userVillageId) {
-      throw new Error("Anda belum ditugaskan ke Desa/Tempat Praktik manapun");
-    }
-
-    if (practicePlace.village_id !== userVillageId) {
-      throw new Error(
-        "Anda tidak memiliki akses untuk menambah data ke lokasi desa lain",
-      );
-    }
-  }
+  await ensurePelayananPracticeMutationAccess(
+    user,
+    practicePlace.practice_id,
+    "Anda tidak memiliki akses untuk menambah data ke tempat praktik lain",
+  );
 
   // Validate pasien exists
   const pasien = await prisma.pasien.findUnique({
@@ -391,25 +359,11 @@ export const updatePersalinan = async (id, payload, user) => {
   }
 
   // Security Check: Village access
-  if (user.role !== "ADMIN" && user.position_user !== "bidan_koordinator") {
-    const currentUser = await prisma.user.findUnique({
-      where: { user_id: userId },
-      include: { practice_place: true },
-    });
-
-    const userVillageId =
-      currentUser.village_id || currentUser.practice_place?.village_id;
-
-    if (!userVillageId) {
-      throw new Error("Anda belum ditugaskan ke Desa/Tempat Praktik manapun");
-    }
-
-    if (existing.practice_place.village_id !== userVillageId) {
-      throw new Error(
-        "Anda tidak memiliki akses untuk mengubah data desa lain",
-      );
-    }
-  }
+  await ensurePelayananPracticeMutationAccess(
+    user,
+    existing.practice_place.practice_id,
+    "Anda tidak memiliki akses untuk mengubah data tempat praktik lain",
+  );
 
   // VALIDASI STATUS: Hanya boleh edit jika REJECTED
   if (existing.status_verifikasi === "APPROVED") {
@@ -588,25 +542,11 @@ export const deletePersalinan = async (id, user) => {
   }
 
   // Security Check: Village access
-  if (user.role !== "ADMIN" && user.position_user !== "bidan_koordinator") {
-    const currentUser = await prisma.user.findUnique({
-      where: { user_id: user.user_id },
-      include: { practice_place: true },
-    });
-
-    const userVillageId =
-      currentUser.village_id || currentUser.practice_place?.village_id;
-
-    if (!userVillageId) {
-      throw new Error("Anda belum ditugaskan ke Desa/Tempat Praktik manapun");
-    }
-
-    if (existing.practice_place.village_id !== userVillageId) {
-      throw new Error(
-        "Anda tidak memiliki akses untuk menghapus data desa lain",
-      );
-    }
-  }
+  await ensurePelayananPracticeMutationAccess(
+    user,
+    existing.practice_place.practice_id,
+    "Anda tidak memiliki akses untuk menghapus data tempat praktik lain",
+  );
 
   // VALIDASI: Data APPROVED tidak boleh dihapus
   if (existing.status_verifikasi === "APPROVED") {
@@ -637,29 +577,7 @@ export const verifyPersalinan = async (id, payload, verifierUser) => {
     throw new Error("Data persalinan tidak ditemukan");
   }
 
-  // Security Check: Village access
-  if (
-    verifierUser.role !== "ADMIN" &&
-    verifierUser.position_user !== "bidan_koordinator"
-  ) {
-    const currentUser = await prisma.user.findUnique({
-      where: { user_id: verifierId },
-      include: { practice_place: true },
-    });
-
-    const userVillageId =
-      currentUser.village_id || currentUser.practice_place?.village_id;
-
-    if (!userVillageId) {
-      throw new Error("Anda belum ditugaskan ke Desa/Tempat Praktik manapun");
-    }
-
-    if (existing.practice_place.village_id !== userVillageId) {
-      throw new Error(
-        "Anda tidak memiliki akses untuk memverifikasi data desa lain",
-      );
-    }
-  }
+  await ensurePelayananVerificationAccess(verifierUser, existing.practice_place);
 
   if (existing.status_verifikasi === status) {
     throw new Error(`Data sudah berstatus ${status}`);

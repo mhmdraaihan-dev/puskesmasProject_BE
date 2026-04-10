@@ -1,5 +1,7 @@
 import {
   getPendingTasks,
+  getBidanDesaHistory,
+  getKoordinatorApprovedFeed,
   getDashboardStats,
 } from "../services/dashboard.service.js";
 
@@ -7,14 +9,61 @@ import {
 export const getPendingTasksController = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const tasks = await getPendingTasks(userId);
+    const tasks = await getPendingTasks(userId, {
+      limit: req.query.limit,
+      module: req.query.module,
+    });
     res.status(200).json({
       success: true,
       message: "Data tugas pending berhasil diambil",
       data: tasks,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getBidanDesaHistoryController = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const history = await getBidanDesaHistory(userId, {
+      limit: req.query.limit,
+      module: req.query.module,
+      status: req.query.status,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Data riwayat bidan desa berhasil diambil",
+      data: history,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getKoordinatorApprovedFeedController = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const feed = await getKoordinatorApprovedFeed(userId, {
+      limit: req.query.limit,
+      module: req.query.module,
+      village_id: req.query.village_id,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Data approved feed koordinator berhasil diambil",
+      data: feed,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message,
     });
@@ -32,7 +81,7 @@ export const getDashboardStatsController = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message,
     });

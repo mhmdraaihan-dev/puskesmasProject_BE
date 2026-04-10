@@ -29,7 +29,7 @@ export const getAllPersalinan = async (req, res) => {
       pagination: result.pagination,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: "Gagal mengambil data persalinan",
       error: error.message,
@@ -51,7 +51,9 @@ export const getPersalinanById = async (req, res) => {
       data,
     });
   } catch (error) {
-    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 500;
+    const statusCode =
+      error.statusCode ||
+      (error.message.includes("tidak ditemukan") ? 404 : 500);
     res.status(statusCode).json({
       success: false,
       message: error.message,
@@ -182,7 +184,9 @@ export const verifyPersalinan = async (req, res) => {
       data,
     });
   } catch (error) {
-    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 400;
+    const statusCode =
+      error.statusCode ||
+      (error.message.includes("tidak ditemukan") ? 404 : 400);
     res.status(statusCode).json({
       success: false,
       message: error.message,
