@@ -112,6 +112,32 @@ export const authorizePosition = (...allowedPositions) => {
   };
 };
 
+export const authorizeRoleOrPosition = ({
+  roles = [],
+  positions = [],
+} = {}) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User tidak terautentikasi.",
+      });
+    }
+
+    const hasAllowedRole = roles.includes(req.user.role);
+    const hasAllowedPosition = positions.includes(req.user.position_user);
+
+    if (!hasAllowedRole && !hasAllowedPosition) {
+      return res.status(403).json({
+        success: false,
+        message: "Anda tidak memiliki akses ke resource ini.",
+      });
+    }
+
+    next();
+  };
+};
+
 // Shared access rules for pelayanan modules
 export const authorizePelayananMutation =
   authorizePosition("bidan_praktik");

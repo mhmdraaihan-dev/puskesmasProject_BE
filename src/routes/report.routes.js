@@ -11,7 +11,7 @@ import {
 } from "../controllers/report.controller.js";
 import {
   authenticateToken,
-  authorizePosition,
+  authorizeRoleOrPosition,
 } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -22,49 +22,73 @@ router.use(authenticateToken);
 // Hanya Bidan Koordinator dan Admin yang bisa ekspor laporan global
 router.get(
   "/reports/pemeriksaan-kehamilan/export",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportPemeriksaanKehamilan,
 );
 
 router.get(
   "/reports/pemeriksaan-kehamilan/export-pdf",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportPemeriksaanKehamilanPDF,
 );
 
 router.get(
   "/reports/persalinan/export",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportPersalinan,
 );
 
 router.get(
   "/reports/keluarga-berencana/export",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportKeluargaBerencana,
 );
 
 router.get(
   "/reports/imunisasi/export",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportImunisasi,
 );
 
 router.get(
   "/reports/persalinan/export-pdf",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportPersalinanPDF,
 );
 
 router.get(
   "/reports/keluarga-berencana/export-pdf",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportKeluargaBerencanaPDF,
 );
 
 router.get(
   "/reports/imunisasi/export-pdf",
-  authorizePosition("bidan_koordinator", "admin"),
+  authorizeRoleOrPosition({
+    roles: ["ADMIN"],
+    positions: ["bidan_koordinator"],
+  }),
   exportImunisasiPDF,
 );
 

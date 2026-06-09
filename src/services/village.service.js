@@ -1,5 +1,31 @@
 import prisma from "../../lib/prisma.js";
 
+const summarizeVillageMidwives = (village) => {
+    const bidanDesaIds = new Set(
+        (village.users || [])
+            .filter((user) => user.position_user === "bidan_desa")
+            .map((user) => user.user_id),
+    );
+    const bidanPraktikIds = new Set();
+
+    (village.practice_places || []).forEach((practicePlace) => {
+        (practicePlace.users || [])
+            .filter((user) => user.position_user === "bidan_praktik")
+            .forEach((user) => bidanPraktikIds.add(user.user_id));
+    });
+
+    const totalBidanWilayah = new Set([
+        ...bidanDesaIds,
+        ...bidanPraktikIds,
+    ]).size;
+
+    return {
+        total_bidan_desa: bidanDesaIds.size,
+        total_bidan_praktik: bidanPraktikIds.size,
+        total_bidan_wilayah: totalBidanWilayah,
+    };
+};
+
 export const createVillageService = async (villageData) => {
     const { nama_desa } = villageData;
 
@@ -27,6 +53,22 @@ export const createVillageService = async (villageData) => {
 export const getAllVillagesService = async () => {
     const villages = await prisma.village.findMany({
         include: {
+            users: {
+                select: {
+                    user_id: true,
+                    position_user: true,
+                },
+            },
+            practice_places: {
+                select: {
+                    users: {
+                        select: {
+                            user_id: true,
+                            position_user: true,
+                        },
+                    },
+                },
+            },
             _count: {
                 select: {
                     users: true,
@@ -39,7 +81,18 @@ export const getAllVillagesService = async () => {
         }
     });
 
-    return villages;
+    return villages.map((village) => {
+        const summary = summarizeVillageMidwives(village);
+
+        return {
+            ...village,
+            _count: {
+                ...village._count,
+                users: summary.total_bidan_wilayah,
+            },
+            ...summary,
+        };
+    });
 };
 
 export const getVillageByIdService = async (village_id) => {
@@ -76,7 +129,10 @@ export const getVillageByIdService = async (village_id) => {
         throw new Error('Desa tidak ditemukan');
     }
 
-    return village;
+    return {
+        ...village,
+        ...summarizeVillageMidwives(village),
+    };
 };
 
 export const updateVillageService = async (village_id, villageData) => {

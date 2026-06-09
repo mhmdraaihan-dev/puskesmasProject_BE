@@ -1,5 +1,5 @@
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./src/routes/auth.routes.js";
 import userRoutes from "./src/routes/user.routes.js";
@@ -13,8 +13,6 @@ import keluargaBerencanaRoutes from "./src/routes/keluarga-berencana.routes.js";
 import imunisasiRoutes from "./src/routes/imunisasi.routes.js";
 import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import reportRoutes from "./src/routes/report.routes.js";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT;

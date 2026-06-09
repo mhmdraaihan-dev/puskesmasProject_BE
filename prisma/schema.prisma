@@ -28,7 +28,7 @@ enum VerificationStatus {
   REJECTED
 }
 
-model user { 
+model user {
   user_id       String        @id @default(uuid())
   full_name     String        @db.VarChar(255)
   password      String        @db.VarChar(255)
@@ -42,41 +42,42 @@ model user {
   status_user   StatusUser    @default(INACTIVE)
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
-  
+
   village        village?        @relation(fields: [village_id], references: [village_id])
   practice_place practice_place? @relation(fields: [practice_id], references: [practice_id], onDelete: SetNull)
   verified_data  health_data[]   @relation("VerifiedData")
-  
+
   // Audit trail relations for bidan praktik data
   created_pemeriksaan_kehamilan  pemeriksaan_kehamilan[] @relation("CreatedPemeriksaan")
   updated_pemeriksaan_kehamilan  pemeriksaan_kehamilan[] @relation("UpdatedPemeriksaan")
   verified_pemeriksaan_kehamilan pemeriksaan_kehamilan[] @relation("VerifiedPemeriksaan")
-  
-  created_persalinan             persalinan[]            @relation("CreatedPersalinan")
-  updated_persalinan             persalinan[]            @relation("UpdatedPersalinan")
-  verified_persalinan            persalinan[]            @relation("VerifiedPersalinan")
-  
-  created_keluarga_berencana     keluarga_berencana[]    @relation("CreatedKB")
-  updated_keluarga_berencana     keluarga_berencana[]    @relation("UpdatedKB")
-  verified_keluarga_berencana    keluarga_berencana[]    @relation("VerifiedKB")
-  
-  created_imunisasi              imunisasi[]             @relation("CreatedImunisasi")
-  updated_imunisasi              imunisasi[]             @relation("UpdatedImunisasi")
-  verified_imunisasi             imunisasi[]             @relation("VerifiedImunisasi")
-  
+
+  created_persalinan  persalinan[] @relation("CreatedPersalinan")
+  updated_persalinan  persalinan[] @relation("UpdatedPersalinan")
+  verified_persalinan persalinan[] @relation("VerifiedPersalinan")
+
+  created_keluarga_berencana  keluarga_berencana[] @relation("CreatedKB")
+  updated_keluarga_berencana  keluarga_berencana[] @relation("UpdatedKB")
+  verified_keluarga_berencana keluarga_berencana[] @relation("VerifiedKB")
+
+  created_imunisasi  imunisasi[] @relation("CreatedImunisasi")
+  updated_imunisasi  imunisasi[] @relation("UpdatedImunisasi")
+  verified_imunisasi imunisasi[] @relation("VerifiedImunisasi")
+
+  @@index([practice_id])
   @@map("users")
 }
 
 model village {
-  village_id   String   @id @default(uuid())
-  nama_desa    String   @db.VarChar(255)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-  
+  village_id String   @id @default(uuid())
+  nama_desa  String   @db.VarChar(255)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
   users           user[]
   practice_places practice_place[]
   pasiens         pasien[]
-  
+
   @@map("villages")
 }
 
@@ -87,43 +88,44 @@ model practice_place {
   alamat       String   @db.VarChar(255)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
-  
+
   village     village       @relation(fields: [village_id], references: [village_id])
   users       user[]
   health_data health_data[]
-  
+  pasiens     pasien[]
+
   // Relations for bidan praktik data
   pemeriksaan_kehamilan pemeriksaan_kehamilan[]
   persalinan            persalinan[]
   keluarga_berencana    keluarga_berencana[]
   imunisasi             imunisasi[]
-  
+
   @@map("practice_places")
 }
 
 model health_data {
-  data_id         String             @id @default(uuid())
+  data_id         String   @id @default(uuid())
   practice_id     String
-  nama_pasien     String             @db.VarChar(255)
+  nama_pasien     String   @db.VarChar(255)
   umur_pasien     Int?
-  jenis_data      String             @db.VarChar(100)
-  catatan         String?            @db.Text
-  tanggal_periksa DateTime           @default(now())
-  
-  status_verifikasi      VerificationStatus @default(PENDING)
-  diverifikasi_oleh      String?
-  tanggal_verifikasi     DateTime?
-  alasan_penolakan       String?            @db.Text
-  
-  jumlah_revisi          Int                @default(0)
-  alasan_reject_terakhir String?            @db.Text
-  
+  jenis_data      String   @db.VarChar(100)
+  catatan         String?  @db.Text
+  tanggal_periksa DateTime @default(now())
+
+  status_verifikasi  VerificationStatus @default(PENDING)
+  diverifikasi_oleh  String?
+  tanggal_verifikasi DateTime?
+  alasan_penolakan   String?            @db.Text
+
+  jumlah_revisi          Int     @default(0)
+  alasan_reject_terakhir String? @db.Text
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   practice_place practice_place @relation(fields: [practice_id], references: [practice_id])
   verifier       user?          @relation("VerifiedData", fields: [diverifikasi_oleh], references: [user_id])
-  
+
   @@map("health_data")
 }
 
@@ -138,111 +140,114 @@ model pasien {
   nama           String   @db.VarChar(255)
   alamat_lengkap String   @db.Text
   tanggal_lahir  DateTime
-  village_id     String?  // Tambahkan ini untuk sortir per desa
-  
+  village_id     String? // Tambahkan ini untuk sortir per desa
+  practice_id    String? // Ikat pasien ke tempat praktik pemilik saat dibutuhkan
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   village               village?                @relation(fields: [village_id], references: [village_id])
+  practice_place        practice_place?         @relation(fields: [practice_id], references: [practice_id], onDelete: SetNull)
   pemeriksaan_kehamilan pemeriksaan_kehamilan[]
   persalinan            persalinan[]
   keluarga_berencana    keluarga_berencana[]
   imunisasi             imunisasi[]
-  
+
+  @@index([practice_id])
   @@map("pasien")
 }
 
 // Pemeriksaan Kehamilan
 model pemeriksaan_kehamilan {
-  id              String   @id @default(uuid())
-  practice_id     String
-  pasien_id       String
-  
+  id          String @id @default(uuid())
+  practice_id String
+  pasien_id   String
+
   tanggal         DateTime @default(now())
-  gpa             String   @db.VarChar(20)  // Format: "G2P1A0"
-  umur_kehamilan  Int                        // dalam minggu
-  status_tt       String   @db.VarChar(50)  // "TT1", "TT2", "TT2+", dll
-  jenis_kunjungan String   @db.VarChar(50)  // "ANC", "Rujukan", dll
-  td              String   @db.VarChar(20)  // Format: "120/80"
-  lila            Float?                     // Lingkar Lengan Atas (cm)
-  bb              Float?                     // Berat Badan (kg)
-  resti           String   @db.VarChar(50)  // "RENDAH", "SEDANG", "TINGGI"
+  gpa             String   @db.VarChar(20) // Format: "G2P1A0"
+  umur_kehamilan  Int // dalam minggu
+  status_tt       String   @db.VarChar(50) // "TT1", "TT2", "TT2+", dll
+  jenis_kunjungan String   @db.VarChar(50) // "ANC", "Rujukan", dll
+  td              String   @db.VarChar(20) // Format: "120/80"
+  lila            Float? // Lingkar Lengan Atas (cm)
+  bb              Float? // Berat Badan (kg)
+  resti           String   @db.VarChar(50) // "RENDAH", "SEDANG", "TINGGI"
   catatan         String?  @db.Text
-  
+
   // Verification Fields
-  status_verifikasi      VerificationStatus @default(PENDING)
-  alasan_penolakan       String?            @db.Text
-  tanggal_verifikasi     DateTime?
-  diverifikasi_oleh      String?
-  
+  status_verifikasi  VerificationStatus @default(PENDING)
+  alasan_penolakan   String?            @db.Text
+  tanggal_verifikasi DateTime?
+  diverifikasi_oleh  String?
+
   // Audit trail
-  created_by      String
-  updated_by      String?
-  
+  created_by String
+  updated_by String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   // Relations
-  practice_place practice_place        @relation(fields: [practice_id], references: [practice_id])
-  pasien         pasien                @relation(fields: [pasien_id], references: [pasien_id])
-  creator        user                  @relation("CreatedPemeriksaan", fields: [created_by], references: [user_id])
-  updater        user?                 @relation("UpdatedPemeriksaan", fields: [updated_by], references: [user_id])
-  verifier       user?                 @relation("VerifiedPemeriksaan", fields: [diverifikasi_oleh], references: [user_id])
+  practice_place practice_place @relation(fields: [practice_id], references: [practice_id])
+  pasien         pasien         @relation(fields: [pasien_id], references: [pasien_id])
+  creator        user           @relation("CreatedPemeriksaan", fields: [created_by], references: [user_id])
+  updater        user?          @relation("UpdatedPemeriksaan", fields: [updated_by], references: [user_id])
+  verifier       user?          @relation("VerifiedPemeriksaan", fields: [diverifikasi_oleh], references: [user_id])
   ceklab_report  ceklab_report?
-  
+
   @@map("pemeriksaan_kehamilan")
 }
 
 // Cek Lab Report (One-to-One dengan Pemeriksaan Kehamilan)
 model ceklab_report {
-  id                       String   @id @default(uuid())
-  pemeriksaan_kehamilan_id String   @unique
-  
-  hiv                      Boolean  @default(false)
-  hbsag                    Boolean  @default(false)
-  sifilis                  Boolean  @default(false)
-  hb                       Float?
-  golongan_darah           String?  @db.VarChar(5)  // "A", "B", "AB", "O"
-  
+  id                       String @id @default(uuid())
+  pemeriksaan_kehamilan_id String @unique
+
+  hiv            Boolean @default(false)
+  hbsag          Boolean @default(false)
+  sifilis        Boolean @default(false)
+  hb             Float?
+  golongan_darah String? @db.VarChar(5) // "A", "B", "AB", "O"
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   pemeriksaan_kehamilan pemeriksaan_kehamilan @relation(fields: [pemeriksaan_kehamilan_id], references: [id], onDelete: Cascade)
-  
+
   @@map("ceklab_reports")
 }
 
 // Persalinan
 model persalinan {
-  id                 String   @id @default(uuid())
-  practice_id        String
-  pasien_id          String
-  
-  tanggal_partus     DateTime
-  gravida            Int      // G
-  para               Int      // P
-  abortus            Int      // A
-  
+  id          String @id @default(uuid())
+  practice_id String
+  pasien_id   String
+
+  tanggal_partus DateTime
+  gravida        Int // G
+  para           Int // P
+  abortus        Int // A
+
   // Vitamin & Imunisasi
-  vit_k              Boolean  @default(false)
-  hb_0               Boolean  @default(false)  // Hepatitis B 0
-  vit_a_bufas        Boolean  @default(false)  // Vitamin A Ibu Nifas
-  
-  catatan            String?  @db.Text
-  
+  vit_k       Boolean @default(false)
+  hb_0        Boolean @default(false) // Hepatitis B 0
+  vit_a_bufas Boolean @default(false) // Vitamin A Ibu Nifas
+
+  catatan String? @db.Text
+
   // Verification Fields
-  status_verifikasi      VerificationStatus @default(PENDING)
-  alasan_penolakan       String?            @db.Text
-  tanggal_verifikasi     DateTime?
-  diverifikasi_oleh      String?
-  
+  status_verifikasi  VerificationStatus @default(PENDING)
+  alasan_penolakan   String?            @db.Text
+  tanggal_verifikasi DateTime?
+  diverifikasi_oleh  String?
+
   // Audit trail
-  created_by      String
-  updated_by      String?
-  
+  created_by String
+  updated_by String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   practice_place          practice_place           @relation(fields: [practice_id], references: [practice_id])
   pasien                  pasien                   @relation(fields: [pasien_id], references: [pasien_id])
   creator                 user                     @relation("CreatedPersalinan", fields: [created_by], references: [user_id])
@@ -250,127 +255,127 @@ model persalinan {
   verifier                user?                    @relation("VerifiedPersalinan", fields: [diverifikasi_oleh], references: [user_id])
   keadaan_ibu_persalinan  keadaan_ibu_persalinan?
   keadaan_bayi_persalinan keadaan_bayi_persalinan?
-  
+
   @@map("persalinan")
 }
 
 // Keadaan Ibu Persalinan (One-to-One dengan Persalinan)
 model keadaan_ibu_persalinan {
-  id             String   @id @default(uuid())
-  persalinan_id  String   @unique
-  
-  baik           Boolean  @default(true)
-  hap            Boolean  @default(false)  // Hemorrhage Post Partum
-  partus_lama    Boolean  @default(false)
-  pre_eklamsi    Boolean  @default(false)
-  hidup          Boolean  @default(true)
-  
+  id            String @id @default(uuid())
+  persalinan_id String @unique
+
+  baik        Boolean @default(true)
+  hap         Boolean @default(false) // Hemorrhage Post Partum
+  partus_lama Boolean @default(false)
+  pre_eklamsi Boolean @default(false)
+  hidup       Boolean @default(true)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   persalinan persalinan @relation(fields: [persalinan_id], references: [id], onDelete: Cascade)
-  
+
   @@map("keadaan_ibu_persalinan")
 }
 
 // Keadaan Bayi Persalinan (One-to-One dengan Persalinan)
 model keadaan_bayi_persalinan {
-  id                String   @id @default(uuid())
-  persalinan_id     String   @unique
-  
-  pb                Float?   // Panjang Badan (cm)
-  bb                Float?   // Berat Badan (gram)
-  jenis_kelamin     String   @db.VarChar(20)  // "LAKI_LAKI", "PEREMPUAN"
-  asfiksia          Boolean  @default(false)
-  rds               Boolean  @default(false)  // Respiratory Distress Syndrome
-  cacat_bawaan      Boolean  @default(false)
-  keterangan_cacat  String?  @db.Text         // Jika ada cacat, jelaskan
-  hidup             Boolean  @default(true)
-  
+  id            String @id @default(uuid())
+  persalinan_id String @unique
+
+  pb               Float? // Panjang Badan (cm)
+  bb               Float? // Berat Badan (gram)
+  jenis_kelamin    String  @db.VarChar(20) // "LAKI_LAKI", "PEREMPUAN"
+  asfiksia         Boolean @default(false)
+  rds              Boolean @default(false) // Respiratory Distress Syndrome
+  cacat_bawaan     Boolean @default(false)
+  keterangan_cacat String? @db.Text // Jika ada cacat, jelaskan
+  hidup            Boolean @default(true)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   persalinan persalinan @relation(fields: [persalinan_id], references: [id], onDelete: Cascade)
-  
+
   @@map("keadaan_bayi_persalinan")
 }
 
 // Keluarga Berencana
 model keluarga_berencana {
-  id          String   @id @default(uuid())
+  id          String @id @default(uuid())
   practice_id String
   pasien_id   String
-  
-  tanggal_kunjungan     DateTime @default(now())
-  
+
+  tanggal_kunjungan DateTime @default(now())
+
   // Data Anak Hidup (Historis per kunjungan)
-  jumlah_anak_laki      Int      @default(0)
-  jumlah_anak_perempuan Int      @default(0)
-  
+  jumlah_anak_laki      Int @default(0)
+  jumlah_anak_perempuan Int @default(0)
+
   // Indikasi/Kondisi
-  at                    Boolean  @default(false) // Abortus Terancam
-  
+  at Boolean @default(false) // Abortus Terancam
+
   // Metode KB (Single Choice: PIL, SUNTIK, IMPLANT, IUD, KONDOM, dll)
-  alat_kontrasepsi      String   @db.VarChar(50)
-  
-  keterangan            String?  @db.Text
-  
+  alat_kontrasepsi String @db.VarChar(50)
+
+  keterangan String? @db.Text
+
   // Verification Fields
-  status_verifikasi      VerificationStatus @default(PENDING)
-  alasan_penolakan       String?            @db.Text
-  tanggal_verifikasi     DateTime?
-  diverifikasi_oleh      String?
-  
+  status_verifikasi  VerificationStatus @default(PENDING)
+  alasan_penolakan   String?            @db.Text
+  tanggal_verifikasi DateTime?
+  diverifikasi_oleh  String?
+
   // Audit trail
-  created_by  String
-  updated_by  String?
-  
+  created_by String
+  updated_by String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   practice_place practice_place @relation(fields: [practice_id], references: [practice_id])
   pasien         pasien         @relation(fields: [pasien_id], references: [pasien_id])
   creator        user           @relation("CreatedKB", fields: [created_by], references: [user_id])
   updater        user?          @relation("UpdatedKB", fields: [updated_by], references: [user_id])
   verifier       user?          @relation("VerifiedKB", fields: [diverifikasi_oleh], references: [user_id])
-  
+
   @@map("keluarga_berencana")
 }
 
 // Imunisasi (Bayi/Anak sebagai Pasien)
 model imunisasi {
-  id              String   @id @default(uuid())
-  practice_id     String
-  pasien_id       String   // ID Bayi/Anak
-  
-  tgl_imunisasi   DateTime @default(now())
-  berat_badan     Float    // Berat badan (kg/gram)
-  suhu_badan      Float?   // Opsional (C)
-  nama_orangtua   String   @db.VarChar(255)
-  
+  id          String @id @default(uuid())
+  practice_id String
+  pasien_id   String // ID Bayi/Anak
+
+  tgl_imunisasi DateTime @default(now())
+  berat_badan   Float // Berat badan (kg/gram)
+  suhu_badan    Float? // Opsional (C)
+  nama_orangtua String   @db.VarChar(255)
+
   // Jenis Imunisasi (HB_0, BCG, DPT_1, dll)
-  jenis_imunisasi String   @db.VarChar(50)
-  
-  catatan         String?  @db.Text
-  
+  jenis_imunisasi String @db.VarChar(50)
+
+  catatan String? @db.Text
+
   // Verification Fields
-  status_verifikasi      VerificationStatus @default(PENDING)
-  alasan_penolakan       String?            @db.Text
-  tanggal_verifikasi     DateTime?
-  diverifikasi_oleh      String?
-  
+  status_verifikasi  VerificationStatus @default(PENDING)
+  alasan_penolakan   String?            @db.Text
+  tanggal_verifikasi DateTime?
+  diverifikasi_oleh  String?
+
   // Audit trail
-  created_by      String
-  updated_by      String?
-  
+  created_by String
+  updated_by String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
+
   practice_place practice_place @relation(fields: [practice_id], references: [practice_id])
   pasien         pasien         @relation(fields: [pasien_id], references: [pasien_id])
   creator        user           @relation("CreatedImunisasi", fields: [created_by], references: [user_id])
   updater        user?          @relation("UpdatedImunisasi", fields: [updated_by], references: [user_id])
   verifier       user?          @relation("VerifiedImunisasi", fields: [diverifikasi_oleh], references: [user_id])
-  
+
   @@map("imunisasi")
 }

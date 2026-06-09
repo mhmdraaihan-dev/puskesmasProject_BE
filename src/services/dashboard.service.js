@@ -1,6 +1,7 @@
 import prisma from "../../lib/prisma.js";
 import {
   getDashboardFeedItems,
+  getDashboardFeedSummary,
   getPelayananUserScope,
 } from "./pelayanan-access.service.js";
 
@@ -82,12 +83,21 @@ export const getPendingTasks = async (userId, filters = {}) => {
     return [];
   }
 
-  return getDashboardFeedItems({
+  const statuses = ["PENDING"];
+  const data = await getDashboardFeedItems({
     villageId: user.village_id,
-    statuses: ["PENDING"],
+    statuses,
     module: filters.module,
     limit: filters.limit,
   });
+
+  const summary = await getDashboardFeedSummary({
+    villageId: user.village_id,
+    statuses,
+    module: filters.module,
+  });
+
+  return { data, summary };
 };
 
 /**
@@ -106,12 +116,21 @@ export const getBidanDesaHistory = async (userId, filters = {}) => {
     return [];
   }
 
-  return getDashboardFeedItems({
+  const statuses = parseStatusQuery(filters.status, ["APPROVED", "REJECTED"]);
+  const data = await getDashboardFeedItems({
     villageId: user.village_id,
-    statuses: parseStatusQuery(filters.status, ["APPROVED", "REJECTED"]),
+    statuses,
     module: filters.module,
     limit: filters.limit,
   });
+
+  const summary = await getDashboardFeedSummary({
+    villageId: user.village_id,
+    statuses,
+    module: filters.module,
+  });
+
+  return { data, summary };
 };
 
 /**
@@ -128,12 +147,22 @@ export const getKoordinatorApprovedFeed = async (userId, filters = {}) => {
     throw error;
   }
 
-  return getDashboardFeedItems({
-    villageId: filters.village_id || null,
-    statuses: ["APPROVED"],
+  const statuses = ["APPROVED"];
+  const villageId = filters.village_id || null;
+  const data = await getDashboardFeedItems({
+    villageId,
+    statuses,
     module: filters.module,
     limit: filters.limit,
   });
+
+  const summary = await getDashboardFeedSummary({
+    villageId,
+    statuses,
+    module: filters.module,
+  });
+
+  return { data, summary };
 };
 
 /**

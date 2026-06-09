@@ -80,7 +80,7 @@ export const createPasien = async (req, res) => {
       }
     }
 
-    const data = await pasienService.createPasien(req.body);
+    const data = await pasienService.createPasien(req.body, req.user);
 
     res.status(201).json({
       success: true,

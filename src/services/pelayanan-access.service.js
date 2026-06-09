@@ -218,76 +218,7 @@ export const getDashboardFeedItems = async ({
     return where;
   };
 
-  const commonInclude = {
-    pasien: {
-      select: {
-        nama: true,
-        nik: true,
-      },
-    },
-    practice_place: {
-      select: {
-        nama_praktik: true,
-        village: {
-          select: {
-            nama_desa: true,
-          },
-        },
-      },
-    },
-    creator: {
-      select: {
-        full_name: true,
-      },
-    },
-  };
-
-  const moduleConfigs = [
-    {
-      key: "kehamilan",
-      label: "KEHAMILAN",
-      query: () =>
-        prisma.pemeriksaan_kehamilan.findMany({
-          where: buildWhere(),
-          include: commonInclude,
-          orderBy: { updated_at: "desc" },
-          take,
-        }),
-    },
-    {
-      key: "persalinan",
-      label: "PERSALINAN",
-      query: () =>
-        prisma.persalinan.findMany({
-          where: buildWhere(),
-          include: commonInclude,
-          orderBy: { updated_at: "desc" },
-          take,
-        }),
-    },
-    {
-      key: "keluarga-berencana",
-      label: "KB",
-      query: () =>
-        prisma.keluarga_berencana.findMany({
-          where: buildWhere(),
-          include: commonInclude,
-          orderBy: { updated_at: "desc" },
-          take,
-        }),
-    },
-    {
-      key: "imunisasi",
-      label: "IMUNISASI",
-      query: () =>
-        prisma.imunisasi.findMany({
-          where: buildWhere(),
-          include: commonInclude,
-          orderBy: { updated_at: "desc" },
-          take,
-        }),
-    },
-  ];
+  const moduleConfigs = getDashboardModuleConfigs({ buildWhere, take });
 
   const selectedConfigs = normalizedModule
     ? moduleConfigs.filter((config) => config.key === normalizedModule)
@@ -318,4 +249,142 @@ export const getDashboardFeedItems = async ({
   return items
     .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
     .slice(0, take);
+};
+
+const getDashboardModuleConfigs = ({ buildWhere, take }) => {
+  const commonInclude = {
+    pasien: {
+      select: {
+        nama: true,
+        nik: true,
+      },
+    },
+    practice_place: {
+      select: {
+        nama_praktik: true,
+        village: {
+          select: {
+            nama_desa: true,
+          },
+        },
+      },
+    },
+    creator: {
+      select: {
+        full_name: true,
+      },
+    },
+  };
+
+  return [
+    {
+      key: "kehamilan",
+      label: "KEHAMILAN",
+      count: () =>
+        prisma.pemeriksaan_kehamilan.count({
+          where: buildWhere(),
+        }),
+      query: () =>
+        prisma.pemeriksaan_kehamilan.findMany({
+          where: buildWhere(),
+          include: commonInclude,
+          orderBy: { updated_at: "desc" },
+          take,
+        }),
+    },
+    {
+      key: "persalinan",
+      label: "PERSALINAN",
+      count: () =>
+        prisma.persalinan.count({
+          where: buildWhere(),
+        }),
+      query: () =>
+        prisma.persalinan.findMany({
+          where: buildWhere(),
+          include: commonInclude,
+          orderBy: { updated_at: "desc" },
+          take,
+        }),
+    },
+    {
+      key: "keluarga-berencana",
+      label: "KB",
+      count: () =>
+        prisma.keluarga_berencana.count({
+          where: buildWhere(),
+        }),
+      query: () =>
+        prisma.keluarga_berencana.findMany({
+          where: buildWhere(),
+          include: commonInclude,
+          orderBy: { updated_at: "desc" },
+          take,
+        }),
+    },
+    {
+      key: "imunisasi",
+      label: "IMUNISASI",
+      count: () =>
+        prisma.imunisasi.count({
+          where: buildWhere(),
+        }),
+      query: () =>
+        prisma.imunisasi.findMany({
+          where: buildWhere(),
+          include: commonInclude,
+          orderBy: { updated_at: "desc" },
+          take,
+        }),
+    },
+  ];
+};
+
+export const getDashboardFeedSummary = async ({
+  villageId,
+  statuses,
+  module,
+}) => {
+  const normalizedStatuses = Array.isArray(statuses) ? statuses : [statuses];
+  const requestedModule = module ? module.toLowerCase() : null;
+  const normalizedModule =
+    requestedModule === "kb" ? "keluarga-berencana" : requestedModule;
+
+  const buildWhere = () => {
+    const where = {
+      status_verifikasi:
+        normalizedStatuses.length === 1
+          ? normalizedStatuses[0]
+          : { in: normalizedStatuses },
+    };
+
+    if (villageId) {
+      where.practice_place = { village_id: villageId };
+    }
+
+    return where;
+  };
+
+  const moduleConfigs = getDashboardModuleConfigs({ buildWhere, take: 1 });
+  const selectedConfigs = normalizedModule
+    ? moduleConfigs.filter((config) => config.key === normalizedModule)
+    : moduleConfigs;
+
+  const counts = await Promise.all(
+    selectedConfigs.map(async (config) => ({
+      key: config.key,
+      label: config.label,
+      total: await config.count(),
+    })),
+  );
+
+  return {
+    total: counts.reduce((sum, item) => sum + item.total, 0),
+    modules: counts.reduce((acc, item) => {
+      acc[item.key] = item.total;
+      return acc;
+    }, {}),
+    statuses: normalizedStatuses,
+    village_id: villageId || null,
+  };
 };

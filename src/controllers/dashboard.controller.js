@@ -9,14 +9,15 @@ import {
 export const getPendingTasksController = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const tasks = await getPendingTasks(userId, {
+    const result = await getPendingTasks(userId, {
       limit: req.query.limit,
       module: req.query.module,
     });
     res.status(200).json({
       success: true,
       message: "Data tugas pending berhasil diambil",
-      data: tasks,
+      data: result.data,
+      summary: result.summary,
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
@@ -29,7 +30,7 @@ export const getPendingTasksController = async (req, res) => {
 export const getBidanDesaHistoryController = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const history = await getBidanDesaHistory(userId, {
+    const result = await getBidanDesaHistory(userId, {
       limit: req.query.limit,
       module: req.query.module,
       status: req.query.status,
@@ -38,7 +39,8 @@ export const getBidanDesaHistoryController = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Data riwayat bidan desa berhasil diambil",
-      data: history,
+      data: result.data,
+      summary: result.summary,
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
@@ -51,7 +53,7 @@ export const getBidanDesaHistoryController = async (req, res) => {
 export const getKoordinatorApprovedFeedController = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const feed = await getKoordinatorApprovedFeed(userId, {
+    const result = await getKoordinatorApprovedFeed(userId, {
       limit: req.query.limit,
       module: req.query.module,
       village_id: req.query.village_id,
@@ -60,7 +62,8 @@ export const getKoordinatorApprovedFeedController = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Data approved feed koordinator berhasil diambil",
-      data: feed,
+      data: result.data,
+      summary: result.summary,
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
