@@ -1,6 +1,7 @@
 import {
   loginService,
   getProfileService,
+  logoutService,
   updateProfileService,
 } from "../services/auth.service.js";
 
@@ -41,6 +42,26 @@ export const getProfileController = async (req, res) => {
     });
   } catch (error) {
     res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const logoutController = async (req, res) => {
+  try {
+    const result = await logoutService({
+      user_id: req.user.user_id,
+      token: req.auth.token,
+      decoded: req.auth.decoded,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    res.status(400).json({
       success: false,
       message: error.message,
     });

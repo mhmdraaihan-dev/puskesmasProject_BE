@@ -25,7 +25,9 @@ export const createPracticePlaceController = async (req, res) => {
 
 export const getAllPracticePlacesController = async (req, res) => {
     try {
-        const practicePlaces = await getAllPracticePlacesService();
+        const practicePlaces = await getAllPracticePlacesService({
+            village_id: req.query.village_id,
+        });
         res.status(200).json({
             success: true,
             data: practicePlaces

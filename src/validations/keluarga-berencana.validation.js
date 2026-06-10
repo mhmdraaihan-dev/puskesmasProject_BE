@@ -1,5 +1,34 @@
 import { z } from "zod";
 
+const KONTRASEPSI_CANONICAL_MAP = {
+  PIL: "PIL",
+  SUNTIK: "SUNTIK",
+  "SUNTIK 1 BULAN": "SUNTIK",
+  "SUNTIK 3 BULAN": "SUNTIK",
+  IMPLANT: "IMPLANT",
+  IUD: "IUD",
+  KONDOM: "KONDOM",
+  MOW: "MOW",
+  MOP: "MOP",
+  MAL: "MAL",
+};
+
+const normalizeKontrasepsi = (value) =>
+  value
+    .toString()
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+
+const alatKontrasepsiSchema = z
+  .string()
+  .transform(normalizeKontrasepsi)
+  .refine((value) => value in KONTRASEPSI_CANONICAL_MAP, {
+    message:
+      "Alat kontrasepsi harus PIL, SUNTIK, SUNTIK 1 BULAN, SUNTIK 3 BULAN, IMPLANT, IUD, KONDOM, MOW, MOP, atau MAL",
+  })
+  .transform((value) => KONTRASEPSI_CANONICAL_MAP[value]);
+
 export const createKeluargaBerencanaSchema = z.object({
   body: z.object({
     practice_id: z
@@ -23,13 +52,7 @@ export const createKeluargaBerencanaSchema = z.object({
     at: z.boolean().default(false), // Abortus Terancam
 
     // Alat Kontrasepsi (Single Choice)
-    alat_kontrasepsi: z.enum(
-      ["PIL", "SUNTIK", "IMPLANT", "IUD", "KONDOM", "MOW", "MOP", "MAL"],
-      {
-        message:
-          "Alat kontrasepsi harus PIL, SUNTIK, IMPLANT, IUD, KONDOM, MOW, MOP, atau MAL",
-      },
-    ),
+    alat_kontrasepsi: alatKontrasepsiSchema,
 
     keterangan: z.string().optional(),
   }),
@@ -44,9 +67,7 @@ export const updateKeluargaBerencanaSchema = z.object({
     jumlah_anak_laki: z.coerce.number().int().min(0).optional(),
     jumlah_anak_perempuan: z.coerce.number().int().min(0).optional(),
     at: z.boolean().optional(),
-    alat_kontrasepsi: z
-      .enum(["PIL", "SUNTIK", "IMPLANT", "IUD", "KONDOM", "MOW", "MOP", "MAL"])
-      .optional(),
+    alat_kontrasepsi: alatKontrasepsiSchema.optional(),
     keterangan: z.string().optional(),
   }),
 });

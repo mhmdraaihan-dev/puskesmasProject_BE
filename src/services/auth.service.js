@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "../../lib/prisma.js";
+import { generateTokenJti, hashAuthToken } from "../utils/auth-token.util.js";
 
 // Login User
 export const loginService = async (email, password) => {
@@ -25,12 +26,15 @@ export const loginService = async (email, password) => {
     throw new Error("Email atau password salah.");
   }
 
+  const jti = generateTokenJti();
+
   // Generate JWT token
   const token = jwt.sign(
     {
       user_id: user.user_id,
       email: user.email,
       role: user.role,
+      jti,
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }, // Token berlaku 7 hari
@@ -46,6 +50,35 @@ export const loginService = async (email, password) => {
       position_user: user.position_user,
       status_user: user.status_user,
     },
+  };
+};
+
+export const logoutService = async ({ user_id, token, decoded }) => {
+  if (!token || !decoded?.exp) {
+    throw new Error("Token logout tidak valid");
+  }
+
+  const expiresAt = new Date(decoded.exp * 1000);
+  const tokenHash = hashAuthToken(token);
+
+  await prisma.revoked_token.upsert({
+    where: { token_hash: tokenHash },
+    update: {
+      expires_at: expiresAt,
+      revoked_at: new Date(),
+      jti: decoded.jti || null,
+      user_id,
+    },
+    create: {
+      token_hash: tokenHash,
+      jti: decoded.jti || null,
+      user_id,
+      expires_at: expiresAt,
+    },
+  });
+
+  return {
+    message: "Logout berhasil.",
   };
 };
 

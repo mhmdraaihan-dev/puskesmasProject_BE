@@ -72,6 +72,21 @@ Content-Type: application/json
 
 **Catatan:** Admin TIDAK perlu `position_user` dan `village_id`
 
+### Logout
+
+**Endpoint:** `POST /api/logout`
+
+**Headers:**
+
+```
+Authorization: Bearer <TOKEN>
+```
+
+**Catatan:**
+- Backend akan mem-blacklist token aktif yang dipakai saat request logout.
+- Setelah logout sukses, frontend tetap harus menghapus token dari storage/state lokal.
+- Token yang sama tidak bisa dipakai lagi untuk akses endpoint protected.
+
 ---
 
 #### B. Create Bidan Praktik
@@ -94,6 +109,7 @@ Content-Type: application/json
 - Setelah user dibuat, **WAJIB** buat `practice_place` untuk user ini
 - Bidan praktik TIDAK BISA akses health data jika belum punya practice place
 - Endpoint create practice place: `POST /api/practice-places`
+- Untuk kebutuhan filter list praktik per desa, FE bisa pakai `GET /api/practice-places?village_id=<village_id>`
 
 **Contoh Create Practice Place:**
 
@@ -227,6 +243,7 @@ if (position_user === "bidan_desa") {
 - Setiap item pada `user_ids` harus user dengan `position_user = "bidan_praktik"`
 - Satu tempat praktik bisa memiliki banyak bidan praktik
 - Satu user bidan praktik hanya bisa terhubung ke 1 tempat praktik pada saat yang sama
+- Untuk halaman admin yang butuh filter per desa, backend sekarang mendukung query `village_id` pada endpoint list practice place
 
 ---
 
@@ -255,6 +272,14 @@ PATCH /api/health-data/:data_id/reject
 GET /api/health-data-pending
 GET /api/health-data-rejected
 ```
+
+**Catatan implementasi FE:**
+
+- `GET /api/health-data-rejected` dipakai untuk halaman revisi bidan praktik
+- Endpoint ini tidak lagi hanya berisi legacy `health_data`, tapi sudah menggabungkan data reject dari `KEHAMILAN`, `PERSALINAN`, `KELUARGA_BERENCANA`, dan `IMUNISASI`
+- Gunakan field `module` untuk menentukan form detail/revisi yang harus dibuka
+- Setiap item menyediakan `id` dan `data_id` dengan nilai yang sama agar FE lama tetap kompatibel
+- Untuk input KB, backend menerima `alat_kontrasepsi` berupa `SUNTIK 1 BULAN` dan `SUNTIK 3 BULAN`, lalu menormalisasinya menjadi `SUNTIK`
 
 **Semua endpoint memerlukan:**
 

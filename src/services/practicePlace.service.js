@@ -124,8 +124,15 @@ export const createPracticePlaceService = async (practicePlaceData) => {
   return newPracticePlace;
 };
 
-export const getAllPracticePlacesService = async () => {
+export const getAllPracticePlacesService = async (filters = {}) => {
+  const where = {};
+
+  if (filters.village_id) {
+    where.village_id = filters.village_id;
+  }
+
   return prisma.practice_place.findMany({
+    where,
     include: practicePlaceInclude,
     orderBy: {
       created_at: "desc",

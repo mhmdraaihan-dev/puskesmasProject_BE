@@ -1,5 +1,30 @@
 import prisma from "../../lib/prisma.js";
 
+const buildRejectedRevisionItem = ({
+  id,
+  module,
+  status_verifikasi,
+  alasan_penolakan,
+  tanggal_verifikasi,
+  updated_at,
+  pasien_nama,
+  pasien_nik,
+  verifier,
+  practice_place,
+}) => ({
+  id,
+  data_id: id,
+  module,
+  status_verifikasi,
+  alasan_penolakan,
+  tanggal_verifikasi,
+  tanggal_update: updated_at,
+  pasien_nama,
+  pasien_nik,
+  verifier,
+  practice_place,
+});
+
 // CREATE: Bidan Praktik membuat data kesehatan (status: PENDING)
 export const createHealthDataService = async (healthDataInput, user_id) => {
   const { nama_pasien, umur_pasien, jenis_data, catatan, tanggal_periksa } =
@@ -586,23 +611,224 @@ export const getRejectedHealthDataService = async (user_id) => {
     throw new Error("Bidan praktik belum memiliki tempat praktik");
   }
 
-  const rejectedData = await prisma.health_data.findMany({
-    where: {
-      status_verifikasi: "REJECTED",
-      practice_id: user.practice_place.practice_id,
-    },
-    include: {
-      verifier: {
-        select: {
-          user_id: true,
-          full_name: true,
+  const practiceId = user.practice_place.practice_id;
+
+  const [legacy, kehamilan, persalinan, kb, imunisasi] = await Promise.all([
+    prisma.health_data.findMany({
+      where: {
+        status_verifikasi: "REJECTED",
+        practice_id: practiceId,
+      },
+      include: {
+        verifier: {
+          select: {
+            user_id: true,
+            full_name: true,
+          },
+        },
+        practice_place: {
+          select: {
+            practice_id: true,
+            nama_praktik: true,
+          },
         },
       },
-    },
-    orderBy: {
-      tanggal_verifikasi: "desc",
-    },
-  });
+      orderBy: {
+        tanggal_verifikasi: "desc",
+      },
+    }),
+    prisma.pemeriksaan_kehamilan.findMany({
+      where: {
+        status_verifikasi: "REJECTED",
+        practice_id: practiceId,
+      },
+      include: {
+        pasien: {
+          select: {
+            nama: true,
+            nik: true,
+          },
+        },
+        verifier: {
+          select: {
+            user_id: true,
+            full_name: true,
+          },
+        },
+        practice_place: {
+          select: {
+            practice_id: true,
+            nama_praktik: true,
+          },
+        },
+      },
+      orderBy: {
+        tanggal_verifikasi: "desc",
+      },
+    }),
+    prisma.persalinan.findMany({
+      where: {
+        status_verifikasi: "REJECTED",
+        practice_id: practiceId,
+      },
+      include: {
+        pasien: {
+          select: {
+            nama: true,
+            nik: true,
+          },
+        },
+        verifier: {
+          select: {
+            user_id: true,
+            full_name: true,
+          },
+        },
+        practice_place: {
+          select: {
+            practice_id: true,
+            nama_praktik: true,
+          },
+        },
+      },
+      orderBy: {
+        tanggal_verifikasi: "desc",
+      },
+    }),
+    prisma.keluarga_berencana.findMany({
+      where: {
+        status_verifikasi: "REJECTED",
+        practice_id: practiceId,
+      },
+      include: {
+        pasien: {
+          select: {
+            nama: true,
+            nik: true,
+          },
+        },
+        verifier: {
+          select: {
+            user_id: true,
+            full_name: true,
+          },
+        },
+        practice_place: {
+          select: {
+            practice_id: true,
+            nama_praktik: true,
+          },
+        },
+      },
+      orderBy: {
+        tanggal_verifikasi: "desc",
+      },
+    }),
+    prisma.imunisasi.findMany({
+      where: {
+        status_verifikasi: "REJECTED",
+        practice_id: practiceId,
+      },
+      include: {
+        pasien: {
+          select: {
+            nama: true,
+            nik: true,
+          },
+        },
+        verifier: {
+          select: {
+            user_id: true,
+            full_name: true,
+          },
+        },
+        practice_place: {
+          select: {
+            practice_id: true,
+            nama_praktik: true,
+          },
+        },
+      },
+      orderBy: {
+        tanggal_verifikasi: "desc",
+      },
+    }),
+  ]);
 
-  return rejectedData;
+  return [
+    ...legacy.map((item) =>
+      buildRejectedRevisionItem({
+        id: item.data_id,
+        module: "HEALTH_DATA",
+        status_verifikasi: item.status_verifikasi,
+        alasan_penolakan: item.alasan_penolakan,
+        tanggal_verifikasi: item.tanggal_verifikasi,
+        updated_at: item.updated_at,
+        pasien_nama: item.nama_pasien,
+        pasien_nik: null,
+        verifier: item.verifier,
+        practice_place: item.practice_place,
+      }),
+    ),
+    ...kehamilan.map((item) =>
+      buildRejectedRevisionItem({
+        id: item.id,
+        module: "KEHAMILAN",
+        status_verifikasi: item.status_verifikasi,
+        alasan_penolakan: item.alasan_penolakan,
+        tanggal_verifikasi: item.tanggal_verifikasi,
+        updated_at: item.updated_at,
+        pasien_nama: item.pasien.nama,
+        pasien_nik: item.pasien.nik,
+        verifier: item.verifier,
+        practice_place: item.practice_place,
+      }),
+    ),
+    ...persalinan.map((item) =>
+      buildRejectedRevisionItem({
+        id: item.id,
+        module: "PERSALINAN",
+        status_verifikasi: item.status_verifikasi,
+        alasan_penolakan: item.alasan_penolakan,
+        tanggal_verifikasi: item.tanggal_verifikasi,
+        updated_at: item.updated_at,
+        pasien_nama: item.pasien.nama,
+        pasien_nik: item.pasien.nik,
+        verifier: item.verifier,
+        practice_place: item.practice_place,
+      }),
+    ),
+    ...kb.map((item) =>
+      buildRejectedRevisionItem({
+        id: item.id,
+        module: "KELUARGA_BERENCANA",
+        status_verifikasi: item.status_verifikasi,
+        alasan_penolakan: item.alasan_penolakan,
+        tanggal_verifikasi: item.tanggal_verifikasi,
+        updated_at: item.updated_at,
+        pasien_nama: item.pasien.nama,
+        pasien_nik: item.pasien.nik,
+        verifier: item.verifier,
+        practice_place: item.practice_place,
+      }),
+    ),
+    ...imunisasi.map((item) =>
+      buildRejectedRevisionItem({
+        id: item.id,
+        module: "IMUNISASI",
+        status_verifikasi: item.status_verifikasi,
+        alasan_penolakan: item.alasan_penolakan,
+        tanggal_verifikasi: item.tanggal_verifikasi,
+        updated_at: item.updated_at,
+        pasien_nama: item.pasien.nama,
+        pasien_nik: item.pasien.nik,
+        verifier: item.verifier,
+        practice_place: item.practice_place,
+      }),
+    ),
+  ].sort(
+    (a, b) =>
+      new Date(b.tanggal_verifikasi || b.tanggal_update) -
+      new Date(a.tanggal_verifikasi || a.tanggal_update),
+  );
 };

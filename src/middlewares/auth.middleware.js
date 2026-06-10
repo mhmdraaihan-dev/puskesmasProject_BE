@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import prisma from "../../lib/prisma.js";
+import { hashAuthToken } from "../utils/auth-token.util.js";
 
 export const authenticateToken = async (req, res, next) => {
   try {
@@ -16,6 +17,19 @@ export const authenticateToken = async (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const tokenHash = hashAuthToken(token);
+
+    const revokedToken = await prisma.revoked_token.findUnique({
+      where: { token_hash: tokenHash },
+      select: { revoked_token_id: true },
+    });
+
+    if (revokedToken) {
+      return res.status(403).json({
+        success: false,
+        message: "Token sudah logout. Silakan login kembali.",
+      });
+    }
 
     // Cek apakah user masih ada di database
     const user = await prisma.user.findUnique({
@@ -46,6 +60,11 @@ export const authenticateToken = async (req, res, next) => {
 
     // Attach user data ke request
     req.user = user;
+    req.auth = {
+      token,
+      tokenHash,
+      decoded,
+    };
     next();
   } catch (error) {
     if (error.name === "JsonWebTokenError") {

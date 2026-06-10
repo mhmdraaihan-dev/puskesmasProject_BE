@@ -60,12 +60,28 @@ model user {
   updated_keluarga_berencana  keluarga_berencana[] @relation("UpdatedKB")
   verified_keluarga_berencana keluarga_berencana[] @relation("VerifiedKB")
 
-  created_imunisasi  imunisasi[] @relation("CreatedImunisasi")
-  updated_imunisasi  imunisasi[] @relation("UpdatedImunisasi")
-  verified_imunisasi imunisasi[] @relation("VerifiedImunisasi")
+  created_imunisasi  imunisasi[]     @relation("CreatedImunisasi")
+  updated_imunisasi  imunisasi[]     @relation("UpdatedImunisasi")
+  verified_imunisasi imunisasi[]     @relation("VerifiedImunisasi")
+  revoked_tokens     revoked_token[]
 
   @@index([practice_id])
   @@map("users")
+}
+
+model revoked_token {
+  revoked_token_id String   @id @default(uuid())
+  token_hash       String   @unique @db.VarChar(64)
+  jti              String?  @unique
+  user_id          String
+  expires_at       DateTime
+  revoked_at       DateTime @default(now())
+
+  user user @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("revoked_tokens")
 }
 
 model village {
