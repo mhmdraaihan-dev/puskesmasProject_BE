@@ -7,6 +7,16 @@ import {
   changePasswordService,
   resetPasswordByAdminService,
 } from "../services/user.service.js";
+import { getErrorResponse } from "../utils/error-response.util.js";
+
+const sendErrorResponse = (res, error, fallbackMessage) => {
+  const { statusCode, message } = getErrorResponse(error, fallbackMessage);
+
+  return res.status(statusCode).json({
+    success: false,
+    message,
+  });
+};
 
 export const createUserController = async (req, res) => {
   try {
@@ -17,10 +27,7 @@ export const createUserController = async (req, res) => {
       data: user,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal membuat user");
   }
 };
 
@@ -32,10 +39,7 @@ export const getUserController = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal mengambil data user");
   }
 };
 
@@ -48,11 +52,7 @@ export const getUserByIdController = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    const statusCode = error.message.includes("tidak ditemukan") ? 404 : 500;
-    res.status(statusCode).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal mengambil detail user");
   }
 };
 
@@ -68,10 +68,7 @@ export const updateUserStatusController = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal mengubah status user");
   }
 };
 
@@ -113,10 +110,7 @@ export const updateUserController = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal mengubah data user");
   }
 };
 
@@ -153,10 +147,7 @@ export const changePasswordController = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal mengubah password");
   }
 };
 
@@ -180,9 +171,6 @@ export const resetPasswordByAdminController = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendErrorResponse(res, error, "Gagal mereset password user");
   }
 };

@@ -1,4 +1,5 @@
 import prisma from "../../lib/prisma.js";
+import { getPelayananUserScope } from "./pelayanan-access.service.js";
 
 const practicePlaceInclude = {
   village: true,
@@ -34,6 +35,52 @@ const normalizeAssignedUserIds = (practicePlaceData) => {
   }
 
   return [];
+};
+
+const createForbiddenError = (message) => {
+  const error = new Error(message);
+  error.statusCode = 403;
+  return error;
+};
+
+const ensureVillageScopedAccess = async (user, requestedVillageId = null) => {
+  if (user.role === "ADMIN" || user.position_user === "bidan_koordinator") {
+    return {
+      scope: null,
+    };
+  }
+
+  const scope = await getPelayananUserScope(user);
+
+  if (user.position_user === "bidan_praktik") {
+    if (!scope.practiceId) {
+      throw createForbiddenError(
+        "Anda belum ditugaskan ke Desa/Tempat Praktik manapun",
+      );
+    }
+
+    if (requestedVillageId && scope.villageId !== requestedVillageId) {
+      throw createForbiddenError(
+        "Anda tidak memiliki akses ke tempat praktik desa lain",
+      );
+    }
+
+    return { scope };
+  }
+
+  if (!scope.villageId) {
+    throw createForbiddenError(
+      "Anda belum ditugaskan ke Desa/Tempat Praktik manapun",
+    );
+  }
+
+  if (requestedVillageId && scope.villageId !== requestedVillageId) {
+    throw createForbiddenError(
+      "Anda tidak memiliki akses ke tempat praktik desa lain",
+    );
+  }
+
+  return { scope };
 };
 
 const validateAssignedUsers = async (userIds, practiceId = null) => {
@@ -124,10 +171,22 @@ export const createPracticePlaceService = async (practicePlaceData) => {
   return newPracticePlace;
 };
 
-export const getAllPracticePlacesService = async (filters = {}) => {
+export const getAllPracticePlacesService = async (filters = {}, user) => {
   const where = {};
 
-  if (filters.village_id) {
+  if (user?.role === "ADMIN" || user?.position_user === "bidan_koordinator") {
+    if (filters.village_id) {
+      where.village_id = filters.village_id;
+    }
+  } else if (user) {
+    const { scope } = await ensureVillageScopedAccess(user, filters.village_id);
+
+    if (user.position_user === "bidan_praktik") {
+      where.practice_id = scope.practiceId;
+    } else {
+      where.village_id = scope.villageId;
+    }
+  } else if (filters.village_id) {
     where.village_id = filters.village_id;
   }
 
@@ -140,7 +199,11 @@ export const getAllPracticePlacesService = async (filters = {}) => {
   });
 };
 
-export const getPracticePlacesByVillageService = async (village_id) => {
+export const getPracticePlacesByVillageService = async (village_id, user) => {
+  if (user) {
+    await ensureVillageScopedAccess(user, village_id);
+  }
+
   const village = await prisma.village.findUnique({
     where: { village_id },
   });
@@ -158,7 +221,7 @@ export const getPracticePlacesByVillageService = async (village_id) => {
   });
 };
 
-export const getPracticePlaceByIdService = async (practice_id) => {
+export const getPracticePlaceByIdService = async (practice_id, user) => {
   const practicePlace = await prisma.practice_place.findUnique({
     where: { practice_id },
     include: {
@@ -199,6 +262,19 @@ export const getPracticePlaceByIdService = async (practice_id) => {
 
   if (!practicePlace) {
     throw new Error("Tempat praktik tidak ditemukan");
+  }
+
+  if (user && user.role !== "ADMIN" && user.position_user !== "bidan_koordinator") {
+    const { scope } = await ensureVillageScopedAccess(user, practicePlace.village_id);
+
+    if (
+      user.position_user === "bidan_praktik" &&
+      practicePlace.practice_id !== scope.practiceId
+    ) {
+      throw createForbiddenError(
+        "Anda tidak memiliki akses ke tempat praktik lain",
+      );
+    }
   }
 
   return practicePlace;

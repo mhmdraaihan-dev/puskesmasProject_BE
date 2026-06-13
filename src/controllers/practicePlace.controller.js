@@ -27,13 +27,13 @@ export const getAllPracticePlacesController = async (req, res) => {
     try {
         const practicePlaces = await getAllPracticePlacesService({
             village_id: req.query.village_id,
-        });
+        }, req.user);
         res.status(200).json({
             success: true,
             data: practicePlaces
         });
     } catch (error) {
-        res.status(500).json({
+        res.status(error.statusCode || 500).json({
             success: false,
             message: error.message
         });
@@ -43,13 +43,13 @@ export const getAllPracticePlacesController = async (req, res) => {
 export const getPracticePlacesByVillageController = async (req, res) => {
     try {
         const { village_id } = req.params;
-        const practicePlaces = await getPracticePlacesByVillageService(village_id);
+        const practicePlaces = await getPracticePlacesByVillageService(village_id, req.user);
         res.status(200).json({
             success: true,
             data: practicePlaces
         });
     } catch (error) {
-        res.status(404).json({
+        res.status(error.statusCode || 404).json({
             success: false,
             message: error.message
         });
@@ -59,13 +59,13 @@ export const getPracticePlacesByVillageController = async (req, res) => {
 export const getPracticePlaceByIdController = async (req, res) => {
     try {
         const { practice_id } = req.params;
-        const practicePlace = await getPracticePlaceByIdService(practice_id);
+        const practicePlace = await getPracticePlaceByIdService(practice_id, req.user);
         res.status(200).json({
             success: true,
             data: practicePlace
         });
     } catch (error) {
-        res.status(404).json({
+        res.status(error.statusCode || 404).json({
             success: false,
             message: error.message
         });

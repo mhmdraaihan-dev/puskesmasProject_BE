@@ -28,6 +28,14 @@ export const createUserService = async (userData) => {
     throw new Error("Bidan desa wajib di-assign ke village!");
   }
 
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    throw new Error("Email sudah digunakan oleh user lain");
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = await prisma.user.create({

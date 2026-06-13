@@ -1,5 +1,35 @@
 import prisma from "../../lib/prisma.js";
 
+const villageUserSelect = {
+    user_id: true,
+    full_name: true,
+    email: true,
+    phone_number: true,
+    address: true,
+    role: true,
+    status_user: true,
+    position_user: true,
+    village_id: true,
+    practice_id: true,
+    created_at: true,
+    updated_at: true,
+};
+
+const practicePlaceUserSelect = {
+    user_id: true,
+    full_name: true,
+    email: true,
+    phone_number: true,
+    address: true,
+    role: true,
+    status_user: true,
+    position_user: true,
+    village_id: true,
+    practice_id: true,
+    created_at: true,
+    updated_at: true,
+};
+
 const summarizeVillageMidwives = (village) => {
     const bidanDesaIds = new Set(
         (village.users || [])
@@ -100,27 +130,37 @@ export const getVillageByIdService = async (village_id) => {
         where: { village_id },
         include: {
             users: {
-                select: {
-                    user_id: true,
-                    full_name: true,
-                    email: true,
-                    position_user: true
-                }
+                select: villageUserSelect,
+                orderBy: {
+                    full_name: 'asc'
+                },
             },
             practice_places: {
                 include: {
                     users: {
-                        select: {
-                            user_id: true,
-                            full_name: true,
-                            email: true,
-                            position_user: true
-                        },
+                        select: practicePlaceUserSelect,
                         orderBy: {
                             full_name: 'asc'
                         }
-                    }
-                }
+                    },
+                    _count: {
+                        select: {
+                            users: true,
+                            health_data: true,
+                            pasiens: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    nama_praktik: 'asc'
+                },
+            },
+            _count: {
+                select: {
+                    users: true,
+                    practice_places: true,
+                    pasiens: true,
+                },
             }
         }
     });
@@ -132,6 +172,8 @@ export const getVillageByIdService = async (village_id) => {
     return {
         ...village,
         ...summarizeVillageMidwives(village),
+        total_tempat_praktik: village._count.practice_places,
+        total_pasien: village._count.pasiens,
     };
 };
 
