@@ -187,10 +187,16 @@ Mengambil daftar data kesehatan dengan berbagai filter.
   - `status_verifikasi`: `PENDING` | `APPROVED` | `REJECTED`
   - `month`: (1-12) Filter bulan rekapitulasi.
   - `year`: (YYYY) Filter tahun rekapitulasi.
+  - `bulan`: alias dari `month`. Jika `bulan` dikirim tanpa `year` / `tahun`, backend akan memakai **tahun berjalan**.
+  - `tahun`: alias dari `year`.
   - `search`: Cari berdasarkan Nama Pasien atau NIK.
   - `pasien_id`: Cari riwayat pasien tertentu.
   - `practice_id`: Filter per tempat praktik.
   - `village_id`: Filter per Desa (Hanya Bidan Koordinator / Admin).
+  - `tanggal_start`: tanggal mulai range filter.
+  - `tanggal_end`: tanggal akhir range filter.
+  - `dari_tanggal`: alias dari `tanggal_start`.
+  - `sampai_tanggal`: alias dari `tanggal_end`.
 - **Security**:
   - `bidan_praktik`: otomatis hanya data dari practice place sendiri
   - `bidan_desa`: otomatis hanya data dari desa yang di-assign
@@ -248,10 +254,22 @@ Mengambil daftar data yang pernah ditolak untuk kebutuhan halaman revisi bidan p
 - **URL**: `/api/health-data-rejected`
 - **Method**: `GET`
 - **Access**: Bidan Praktik.
+- **Query Parameters**:
+  - `module`: `health-data` | `kehamilan` | `persalinan` | `keluarga-berencana` | `kb` | `imunisasi`
+  - `search`: cari berdasarkan nama pasien / NIK. Untuk imunisasi juga mencocokkan `nama_orangtua`
+  - `month`: (1-12) filter bulan berdasarkan `tanggal_verifikasi`
+  - `year`: (YYYY) filter tahun berdasarkan `tanggal_verifikasi`
+  - `bulan`: alias dari `month`. Jika `bulan` dikirim tanpa `year` / `tahun`, backend akan memakai **tahun berjalan**
+  - `tahun`: alias dari `year`
+  - `tanggal_start`: tanggal mulai range berdasarkan `tanggal_verifikasi`
+  - `tanggal_end`: tanggal akhir range berdasarkan `tanggal_verifikasi`
+  - `dari_tanggal`: alias dari `tanggal_start`
+  - `sampai_tanggal`: alias dari `tanggal_end`
 - **Note**:
   - Endpoint ini sekarang menggabungkan data `REJECTED` dari legacy `health-data` dan 4 modul utama: `KEHAMILAN`, `PERSALINAN`, `KELUARGA_BERENCANA`, `IMUNISASI`
   - Gunakan field `module` untuk menentukan detail layar revisi dan endpoint update yang dipakai FE
   - Setiap item menyediakan `id` dan `data_id` dengan nilai yang sama untuk kompatibilitas FE lama
+  - Filter tanggal pada endpoint ini memakai **tanggal reject / verifikasi** (`tanggal_verifikasi`)
 - **Response Item Fields**:
   - `id`
   - `data_id`
@@ -333,11 +351,17 @@ Mendownload data pemeriksaan kehamilan yang sudah **APPROVED** ke file Excel.
 
 - **URL**: `/api/reports/pemeriksaan-kehamilan/export`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
+- **Scope**:
+  - `bidan_desa`: backend otomatis mengunci export ke desa assignment user, walaupun request mengirim `village_id` lain
+  - `bidan_koordinator`: bisa export seluruh desa atau per desa
+  - `ADMIN`: bisa export seluruh desa atau per desa
 
 ### 6.2 Export Persalinan
 
@@ -345,11 +369,15 @@ Mendownload data persalinan yang sudah **APPROVED** ke file Excel.
 
 - **URL**: `/api/reports/persalinan/export`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
+- **Scope**:
+  - `bidan_desa`: backend otomatis mengunci export ke desa assignment user, walaupun request mengirim `village_id` lain
 
 ### 6.3 Export Keluarga Berencana (KB)
 
@@ -357,11 +385,15 @@ Mendownload data KB yang sudah **APPROVED** ke file Excel.
 
 - **URL**: `/api/reports/keluarga-berencana/export`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
+- **Scope**:
+  - `bidan_desa`: backend otomatis mengunci export ke desa assignment user, walaupun request mengirim `village_id` lain
 
 ### 6.4 Export Imunisasi
 
@@ -369,11 +401,15 @@ Mendownload data imunisasi yang sudah **APPROVED** ke file Excel.
 
 - **URL**: `/api/reports/imunisasi/export`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
+- **Scope**:
+  - `bidan_desa`: backend otomatis mengunci export ke desa assignment user, walaupun request mengirim `village_id` lain
 
 ### 6.5 Export Pemeriksaan Kehamilan (PDF)
 
@@ -381,11 +417,13 @@ Mendownload laporan kehamilan dalam format PDF (A4 Landscape, siap cetak).
 
 - **URL**: `/api/reports/pemeriksaan-kehamilan/export-pdf`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
 
 ### 6.6 Export Persalinan (PDF)
 
@@ -393,11 +431,13 @@ Mendownload laporan persalinan dalam format PDF (A4 Landscape, siap cetak).
 
 - **URL**: `/api/reports/persalinan/export-pdf`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
 
 ### 6.7 Export Keluarga Berencana (PDF)
 
@@ -405,11 +445,13 @@ Mendownload laporan KB dalam format PDF (A4 Landscape, siap cetak).
 
 - **URL**: `/api/reports/keluarga-berencana/export-pdf`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.
 
 ### 6.8 Export Imunisasi (PDF)
 
@@ -417,8 +459,10 @@ Mendownload laporan imunisasi dalam format PDF (A4 Landscape, siap cetak).
 
 - **URL**: `/api/reports/imunisasi/export-pdf`
 - **Method**: `GET`
-- **Access**: Bidan Koordinator / ADMIN.
+- **Access**: Bidan Desa / Bidan Koordinator / ADMIN.
 - **Query Parameters**:
   - `village_id`: ID Desa (opsional).
   - `month`: (1-12) Filter bulan.
   - `year`: (YYYY) Filter tahun.
+  - `bulan`: alias dari `month`.
+  - `tahun`: alias dari `year`.

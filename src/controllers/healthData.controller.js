@@ -10,6 +10,7 @@ import {
   getPendingHealthDataService,
   getRejectedHealthDataService,
 } from "../services/healthData.service.js";
+import { normalizePelayananListFilters } from "../utils/pelayanan-filter.util.js";
 
 export const createHealthDataController = async (req, res) => {
   try {
@@ -197,8 +198,11 @@ export const getPendingHealthDataController = async (req, res) => {
 export const getRejectedHealthDataController = async (req, res) => {
   try {
     const user_id = req.user.user_id;
+    const filters = normalizePelayananListFilters(req.query, {
+      module: req.query.module,
+    });
 
-    const rejectedData = await getRejectedHealthDataService(user_id);
+    const rejectedData = await getRejectedHealthDataService(user_id, filters);
     res.status(200).json({
       success: true,
       data: rejectedData,

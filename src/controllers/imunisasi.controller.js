@@ -1,25 +1,15 @@
 import * as imunisasiService from "../services/imunisasi.service.js";
 import prisma from "../../lib/prisma.js";
+import { normalizePelayananListFilters } from "../utils/pelayanan-filter.util.js";
 
 /**
  * Get all imunisasi
  */
 export const getAllImunisasi = async (req, res) => {
   try {
-    const filters = {
-      page: req.query.page,
-      limit: req.query.limit,
-      village_id: req.query.village_id,
-      practice_id: req.query.practice_id,
-      pasien_id: req.query.pasien_id,
-      tanggal_start: req.query.tanggal_start,
-      tanggal_end: req.query.tanggal_end,
+    const filters = normalizePelayananListFilters(req.query, {
       jenis_imunisasi: req.query.jenis_imunisasi,
-      search: req.query.search,
-      status_verifikasi: req.query.status_verifikasi,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    });
 
     const result = await imunisasiService.getAllImunisasi(filters, req.user);
 

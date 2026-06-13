@@ -33,6 +33,7 @@ Village (Desa)
 - `bidan_desa` dashboard sekarang perlu 2 feed:
   - `GET /api/dashboard/pending-tasks` untuk antrean `PENDING`
   - `GET /api/dashboard/history` untuk riwayat `APPROVED` dan `REJECTED`
+- `bidan_desa` sekarang juga boleh melakukan export Excel dan cetak PDF laporan rekapitulasi, tetapi backend tetap membatasi hasilnya hanya untuk desa assignment user.
 - `bidan_koordinator` tidak melakukan verifikasi.
 - `bidan_koordinator` dashboard memakai `GET /api/dashboard/approved-feed`.
 - List modul tanpa query `status_verifikasi`:
@@ -279,7 +280,21 @@ GET /api/health-data-rejected
 - Endpoint ini tidak lagi hanya berisi legacy `health_data`, tapi sudah menggabungkan data reject dari `KEHAMILAN`, `PERSALINAN`, `KELUARGA_BERENCANA`, dan `IMUNISASI`
 - Gunakan field `module` untuk menentukan form detail/revisi yang harus dibuka
 - Setiap item menyediakan `id` dan `data_id` dengan nilai yang sama agar FE lama tetap kompatibel
+- Endpoint ini sekarang mendukung filter:
+  - `module`: `health-data`, `kehamilan`, `persalinan`, `keluarga-berencana`, `kb`, `imunisasi`
+  - `search`
+  - `month` / `year`
+  - `bulan` / `tahun`
+  - `tanggal_start` / `tanggal_end`
+  - `dari_tanggal` / `sampai_tanggal`
+- Filter tanggal untuk endpoint revisi ini memakai `tanggal_verifikasi` dari data reject
 - Untuk input KB, backend menerima `alat_kontrasepsi` berupa `SUNTIK 1 BULAN` dan `SUNTIK 3 BULAN`, lalu menormalisasinya menjadi `SUNTIK`
+- Untuk list 4 modul pelayanan utama, FE sekarang boleh kirim alias query:
+  - `bulan` sebagai alias `month`
+  - `tahun` sebagai alias `year`
+  - `dari_tanggal` sebagai alias `tanggal_start`
+  - `sampai_tanggal` sebagai alias `tanggal_end`
+- Jika FE hanya kirim `bulan` tanpa `tahun`, backend akan otomatis memakai tahun berjalan.
 
 **Semua endpoint memerlukan:**
 

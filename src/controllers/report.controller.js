@@ -1,18 +1,36 @@
 import * as reportService from "../services/report.service.js";
 
+const getCurrentYear = () => new Date().getFullYear().toString();
+
+const respondReportError = (res, error, fallbackMessage) => {
+  res.status(error.statusCode || 500).json({
+    success: false,
+    message: fallbackMessage,
+    error: error.message,
+  });
+};
+
+const buildReportFilters = (req) => {
+  const month = req.query.month ?? req.query.bulan;
+  const yearInput = req.query.year ?? req.query.tahun;
+  const year = month ? yearInput ?? getCurrentYear() : yearInput;
+
+  return {
+    village_id: req.query.village_id,
+    month,
+    year,
+  };
+};
+
 /**
  * Export Pemeriksaan Kehamilan
  */
 export const exportPemeriksaanKehamilan = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
     const workbook =
-      await reportService.exportPemeriksaanKehamilanToExcel(filters);
+      await reportService.exportPemeriksaanKehamilanToExcel(filters, req.user);
 
     res.setHeader(
       "Content-Type",
@@ -27,11 +45,7 @@ export const exportPemeriksaanKehamilan = async (req, res) => {
     await workbook.xlsx.write(res);
     res.status(200).end();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengekspor data ke Excel",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal mengekspor data ke Excel");
   }
 };
 
@@ -40,13 +54,12 @@ export const exportPemeriksaanKehamilan = async (req, res) => {
  */
 export const exportPersalinan = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
-    const workbook = await reportService.exportPersalinanToExcel(filters);
+    const workbook = await reportService.exportPersalinanToExcel(
+      filters,
+      req.user,
+    );
 
     res.setHeader(
       "Content-Type",
@@ -61,11 +74,7 @@ export const exportPersalinan = async (req, res) => {
     await workbook.xlsx.write(res);
     res.status(200).end();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengekspor data Persalinan",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal mengekspor data Persalinan");
   }
 };
 
@@ -74,14 +83,10 @@ export const exportPersalinan = async (req, res) => {
  */
 export const exportKeluargaBerencana = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
     const workbook =
-      await reportService.exportKeluargaBerencanaToExcel(filters);
+      await reportService.exportKeluargaBerencanaToExcel(filters, req.user);
 
     res.setHeader(
       "Content-Type",
@@ -96,11 +101,7 @@ export const exportKeluargaBerencana = async (req, res) => {
     await workbook.xlsx.write(res);
     res.status(200).end();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengekspor data KB",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal mengekspor data KB");
   }
 };
 
@@ -109,13 +110,12 @@ export const exportKeluargaBerencana = async (req, res) => {
  */
 export const exportImunisasi = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
-    const workbook = await reportService.exportImunisasiToExcel(filters);
+    const workbook = await reportService.exportImunisasiToExcel(
+      filters,
+      req.user,
+    );
 
     res.setHeader(
       "Content-Type",
@@ -130,11 +130,7 @@ export const exportImunisasi = async (req, res) => {
     await workbook.xlsx.write(res);
     res.status(200).end();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengekspor data Imunisasi",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal mengekspor data Imunisasi");
   }
 };
 
@@ -143,13 +139,12 @@ export const exportImunisasi = async (req, res) => {
  */
 export const exportPemeriksaanKehamilanPDF = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
-    const doc = await reportService.exportPemeriksaanKehamilanToPDF(filters);
+    const doc = await reportService.exportPemeriksaanKehamilanToPDF(
+      filters,
+      req.user,
+    );
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -159,11 +154,7 @@ export const exportPemeriksaanKehamilanPDF = async (req, res) => {
 
     doc.pipe(res);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal membuat PDF Laporan Kehamilan",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal membuat PDF Laporan Kehamilan");
   }
 };
 
@@ -172,13 +163,9 @@ export const exportPemeriksaanKehamilanPDF = async (req, res) => {
  */
 export const exportPersalinanPDF = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
-    const doc = await reportService.exportPersalinanToPDF(filters);
+    const doc = await reportService.exportPersalinanToPDF(filters, req.user);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -188,11 +175,7 @@ export const exportPersalinanPDF = async (req, res) => {
 
     doc.pipe(res);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal membuat PDF Laporan Persalinan",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal membuat PDF Laporan Persalinan");
   }
 };
 
@@ -201,13 +184,12 @@ export const exportPersalinanPDF = async (req, res) => {
  */
 export const exportKeluargaBerencanaPDF = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
-    const doc = await reportService.exportKeluargaBerencanaToPDF(filters);
+    const doc = await reportService.exportKeluargaBerencanaToPDF(
+      filters,
+      req.user,
+    );
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -217,11 +199,7 @@ export const exportKeluargaBerencanaPDF = async (req, res) => {
 
     doc.pipe(res);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal membuat PDF Laporan KB",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal membuat PDF Laporan KB");
   }
 };
 
@@ -230,13 +208,9 @@ export const exportKeluargaBerencanaPDF = async (req, res) => {
  */
 export const exportImunisasiPDF = async (req, res) => {
   try {
-    const filters = {
-      village_id: req.query.village_id,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = buildReportFilters(req);
 
-    const doc = await reportService.exportImunisasiToPDF(filters);
+    const doc = await reportService.exportImunisasiToPDF(filters, req.user);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -246,10 +220,6 @@ export const exportImunisasiPDF = async (req, res) => {
 
     doc.pipe(res);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Gagal membuat PDF Laporan Imunisasi",
-      error: error.message,
-    });
+    respondReportError(res, error, "Gagal membuat PDF Laporan Imunisasi");
   }
 };

@@ -1,12 +1,51 @@
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit-table";
 import prisma from "../../lib/prisma.js";
+import { getPelayananUserScope } from "./pelayanan-access.service.js";
+
+const resolveReportFiltersForUser = async (filters = {}, user) => {
+  const normalizedFilters = {
+    village_id: filters.village_id || null,
+    month: filters.month || null,
+    year: filters.year || null,
+  };
+
+  if (user?.role === "ADMIN") {
+    return normalizedFilters;
+  }
+
+  if (user?.position_user === "bidan_koordinator") {
+    return normalizedFilters;
+  }
+
+  if (user?.position_user === "bidan_desa") {
+    const scope = await getPelayananUserScope(user);
+
+    if (!scope.villageId) {
+      const error = new Error("Anda belum ditugaskan ke Desa/Tempat Praktik manapun");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return {
+      ...normalizedFilters,
+      village_id: scope.villageId,
+    };
+  }
+
+  const error = new Error("Anda tidak memiliki akses untuk mengekspor laporan");
+  error.statusCode = 403;
+  throw error;
+};
 
 /**
  * Export Pemeriksaan Kehamilan to Excel
  */
-export const exportPemeriksaanKehamilanToExcel = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportPemeriksaanKehamilanToExcel = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
 
   const where = {
     status_verifikasi: "APPROVED",
@@ -132,8 +171,11 @@ export const exportPemeriksaanKehamilanToExcel = async (filters) => {
 /**
  * Export Persalinan to Excel
  */
-export const exportPersalinanToExcel = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportPersalinanToExcel = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) {
@@ -226,8 +268,11 @@ export const exportPersalinanToExcel = async (filters) => {
 /**
  * Export KB to Excel
  */
-export const exportKeluargaBerencanaToExcel = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportKeluargaBerencanaToExcel = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) {
@@ -298,8 +343,11 @@ export const exportKeluargaBerencanaToExcel = async (filters) => {
 /**
  * Export Imunisasi to Excel
  */
-export const exportImunisasiToExcel = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportImunisasiToExcel = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) {
@@ -373,8 +421,11 @@ export const exportImunisasiToExcel = async (filters) => {
 /**
  * Export Pemeriksaan Kehamilan to PDF (Lengkap)
  */
-export const exportPemeriksaanKehamilanToPDF = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportPemeriksaanKehamilanToPDF = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) where.practice_place = { village_id: village_id };
@@ -470,8 +521,11 @@ export const exportPemeriksaanKehamilanToPDF = async (filters) => {
 /**
  * Export Persalinan to PDF
  */
-export const exportPersalinanToPDF = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportPersalinanToPDF = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) where.practice_place = { village_id: village_id };
@@ -561,8 +615,11 @@ export const exportPersalinanToPDF = async (filters) => {
 /**
  * Export KB to PDF
  */
-export const exportKeluargaBerencanaToPDF = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportKeluargaBerencanaToPDF = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) where.practice_place = { village_id: village_id };
@@ -637,8 +694,11 @@ export const exportKeluargaBerencanaToPDF = async (filters) => {
 /**
  * Export Imunisasi to PDF
  */
-export const exportImunisasiToPDF = async (filters) => {
-  const { village_id, month, year } = filters;
+export const exportImunisasiToPDF = async (filters, user) => {
+  const { village_id, month, year } = await resolveReportFiltersForUser(
+    filters,
+    user,
+  );
   const where = { status_verifikasi: "APPROVED" };
 
   if (village_id) where.practice_place = { village_id: village_id };

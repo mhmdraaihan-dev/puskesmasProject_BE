@@ -24,7 +24,7 @@ router.get(
   "/reports/pemeriksaan-kehamilan/export",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportPemeriksaanKehamilan,
 );
@@ -33,7 +33,7 @@ router.get(
   "/reports/pemeriksaan-kehamilan/export-pdf",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportPemeriksaanKehamilanPDF,
 );
@@ -42,7 +42,7 @@ router.get(
   "/reports/persalinan/export",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportPersalinan,
 );
@@ -51,7 +51,7 @@ router.get(
   "/reports/keluarga-berencana/export",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportKeluargaBerencana,
 );
@@ -60,7 +60,7 @@ router.get(
   "/reports/imunisasi/export",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportImunisasi,
 );
@@ -69,7 +69,7 @@ router.get(
   "/reports/persalinan/export-pdf",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportPersalinanPDF,
 );
@@ -78,7 +78,7 @@ router.get(
   "/reports/keluarga-berencana/export-pdf",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportKeluargaBerencanaPDF,
 );
@@ -87,7 +87,7 @@ router.get(
   "/reports/imunisasi/export-pdf",
   authorizeRoleOrPosition({
     roles: ["ADMIN"],
-    positions: ["bidan_koordinator"],
+    positions: ["bidan_koordinator", "bidan_desa"],
   }),
   exportImunisasiPDF,
 );

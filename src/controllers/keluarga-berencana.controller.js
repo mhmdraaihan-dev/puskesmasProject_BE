@@ -1,24 +1,13 @@
 import * as keluargaBerencanaService from "../services/keluarga-berencana.service.js";
 import prisma from "../../lib/prisma.js";
+import { normalizePelayananListFilters } from "../utils/pelayanan-filter.util.js";
 
 /**
  * Get all keluarga berencana
  */
 export const getAllKeluargaBerencana = async (req, res) => {
   try {
-    const filters = {
-      page: req.query.page,
-      limit: req.query.limit,
-      village_id: req.query.village_id,
-      practice_id: req.query.practice_id,
-      pasien_id: req.query.pasien_id,
-      tanggal_start: req.query.tanggal_start,
-      tanggal_end: req.query.tanggal_end,
-      search: req.query.search,
-      status_verifikasi: req.query.status_verifikasi,
-      month: req.query.month,
-      year: req.query.year,
-    };
+    const filters = normalizePelayananListFilters(req.query);
 
     const result = await keluargaBerencanaService.getAllKeluargaBerencana(
       filters,

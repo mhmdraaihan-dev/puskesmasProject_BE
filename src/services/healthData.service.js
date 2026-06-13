@@ -25,6 +25,73 @@ const buildRejectedRevisionItem = ({
   practice_place,
 });
 
+const REJECTED_MODULE_MAP = {
+  "health-data": "HEALTH_DATA",
+  health_data: "HEALTH_DATA",
+  legacy: "HEALTH_DATA",
+  kehamilan: "KEHAMILAN",
+  "pemeriksaan-kehamilan": "KEHAMILAN",
+  persalinan: "PERSALINAN",
+  kb: "KELUARGA_BERENCANA",
+  "keluarga-berencana": "KELUARGA_BERENCANA",
+  keluarga_berencana: "KELUARGA_BERENCANA",
+  imunisasi: "IMUNISASI",
+};
+
+const normalizeRejectedModule = (module) => {
+  if (!module) {
+    return null;
+  }
+
+  const normalizedModule = REJECTED_MODULE_MAP[module.toLowerCase()];
+
+  if (!normalizedModule) {
+    const error = new Error(
+      "Module tidak valid. Gunakan health-data, kehamilan, persalinan, keluarga-berencana, kb, atau imunisasi",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return normalizedModule;
+};
+
+const buildRejectedVerificationDateFilter = (month, year, tanggalStart, tanggalEnd) => {
+  if (month && year) {
+    const startDate = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+    const endDate = new Date(
+      parseInt(year, 10),
+      parseInt(month, 10),
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    return {
+      gte: startDate,
+      lte: endDate,
+    };
+  }
+
+  if (tanggalStart || tanggalEnd) {
+    const dateFilter = {};
+
+    if (tanggalStart) {
+      dateFilter.gte = new Date(tanggalStart);
+    }
+
+    if (tanggalEnd) {
+      dateFilter.lte = new Date(tanggalEnd);
+    }
+
+    return dateFilter;
+  }
+
+  return null;
+};
+
 // CREATE: Bidan Praktik membuat data kesehatan (status: PENDING)
 export const createHealthDataService = async (healthDataInput, user_id) => {
   const { nama_pasien, umur_pasien, jenis_data, catatan, tanggal_periksa } =
@@ -593,7 +660,7 @@ export const getPendingHealthDataService = async (user_id) => {
 };
 
 // GET REJECTED: Ambil data yang direject (Bidan Praktik)
-export const getRejectedHealthDataService = async (user_id) => {
+export const getRejectedHealthDataService = async (user_id, filters = {}) => {
   const user = await prisma.user.findUnique({
     where: { user_id },
     include: {
@@ -612,147 +679,229 @@ export const getRejectedHealthDataService = async (user_id) => {
   }
 
   const practiceId = user.practice_place.practice_id;
+  const requestedModule = normalizeRejectedModule(filters.module);
+  const requestedSearch = filters.search?.trim();
+  const verificationDateFilter = buildRejectedVerificationDateFilter(
+    filters.month,
+    filters.year,
+    filters.tanggal_start,
+    filters.tanggal_end,
+  );
+
+  const baseWhere = {
+    status_verifikasi: "REJECTED",
+    practice_id: practiceId,
+    ...(verificationDateFilter && {
+      tanggal_verifikasi: verificationDateFilter,
+    }),
+  };
+
+  const shouldIncludeModule = (module) =>
+    !requestedModule || requestedModule === module;
 
   const [legacy, kehamilan, persalinan, kb, imunisasi] = await Promise.all([
-    prisma.health_data.findMany({
-      where: {
-        status_verifikasi: "REJECTED",
-        practice_id: practiceId,
-      },
-      include: {
-        verifier: {
-          select: {
-            user_id: true,
-            full_name: true,
+    shouldIncludeModule("HEALTH_DATA")
+      ? prisma.health_data.findMany({
+          where: {
+            ...baseWhere,
+            ...(requestedSearch && {
+              nama_pasien: {
+                contains: requestedSearch,
+                mode: "insensitive",
+              },
+            }),
           },
-        },
-        practice_place: {
-          select: {
-            practice_id: true,
-            nama_praktik: true,
+          include: {
+            verifier: {
+              select: {
+                user_id: true,
+                full_name: true,
+              },
+            },
+            practice_place: {
+              select: {
+                practice_id: true,
+                nama_praktik: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: {
-        tanggal_verifikasi: "desc",
-      },
-    }),
-    prisma.pemeriksaan_kehamilan.findMany({
-      where: {
-        status_verifikasi: "REJECTED",
-        practice_id: practiceId,
-      },
-      include: {
-        pasien: {
-          select: {
-            nama: true,
-            nik: true,
+          orderBy: {
+            tanggal_verifikasi: "desc",
           },
-        },
-        verifier: {
-          select: {
-            user_id: true,
-            full_name: true,
+        })
+      : Promise.resolve([]),
+    shouldIncludeModule("KEHAMILAN")
+      ? prisma.pemeriksaan_kehamilan.findMany({
+          where: {
+            ...baseWhere,
+            ...(requestedSearch && {
+              pasien: {
+                OR: [
+                  { nama: { contains: requestedSearch, mode: "insensitive" } },
+                  { nik: { contains: requestedSearch, mode: "insensitive" } },
+                ],
+              },
+            }),
           },
-        },
-        practice_place: {
-          select: {
-            practice_id: true,
-            nama_praktik: true,
+          include: {
+            pasien: {
+              select: {
+                nama: true,
+                nik: true,
+              },
+            },
+            verifier: {
+              select: {
+                user_id: true,
+                full_name: true,
+              },
+            },
+            practice_place: {
+              select: {
+                practice_id: true,
+                nama_praktik: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: {
-        tanggal_verifikasi: "desc",
-      },
-    }),
-    prisma.persalinan.findMany({
-      where: {
-        status_verifikasi: "REJECTED",
-        practice_id: practiceId,
-      },
-      include: {
-        pasien: {
-          select: {
-            nama: true,
-            nik: true,
+          orderBy: {
+            tanggal_verifikasi: "desc",
           },
-        },
-        verifier: {
-          select: {
-            user_id: true,
-            full_name: true,
+        })
+      : Promise.resolve([]),
+    shouldIncludeModule("PERSALINAN")
+      ? prisma.persalinan.findMany({
+          where: {
+            ...baseWhere,
+            ...(requestedSearch && {
+              pasien: {
+                OR: [
+                  { nama: { contains: requestedSearch, mode: "insensitive" } },
+                  { nik: { contains: requestedSearch, mode: "insensitive" } },
+                ],
+              },
+            }),
           },
-        },
-        practice_place: {
-          select: {
-            practice_id: true,
-            nama_praktik: true,
+          include: {
+            pasien: {
+              select: {
+                nama: true,
+                nik: true,
+              },
+            },
+            verifier: {
+              select: {
+                user_id: true,
+                full_name: true,
+              },
+            },
+            practice_place: {
+              select: {
+                practice_id: true,
+                nama_praktik: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: {
-        tanggal_verifikasi: "desc",
-      },
-    }),
-    prisma.keluarga_berencana.findMany({
-      where: {
-        status_verifikasi: "REJECTED",
-        practice_id: practiceId,
-      },
-      include: {
-        pasien: {
-          select: {
-            nama: true,
-            nik: true,
+          orderBy: {
+            tanggal_verifikasi: "desc",
           },
-        },
-        verifier: {
-          select: {
-            user_id: true,
-            full_name: true,
+        })
+      : Promise.resolve([]),
+    shouldIncludeModule("KELUARGA_BERENCANA")
+      ? prisma.keluarga_berencana.findMany({
+          where: {
+            ...baseWhere,
+            ...(requestedSearch && {
+              pasien: {
+                OR: [
+                  { nama: { contains: requestedSearch, mode: "insensitive" } },
+                  { nik: { contains: requestedSearch, mode: "insensitive" } },
+                ],
+              },
+            }),
           },
-        },
-        practice_place: {
-          select: {
-            practice_id: true,
-            nama_praktik: true,
+          include: {
+            pasien: {
+              select: {
+                nama: true,
+                nik: true,
+              },
+            },
+            verifier: {
+              select: {
+                user_id: true,
+                full_name: true,
+              },
+            },
+            practice_place: {
+              select: {
+                practice_id: true,
+                nama_praktik: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: {
-        tanggal_verifikasi: "desc",
-      },
-    }),
-    prisma.imunisasi.findMany({
-      where: {
-        status_verifikasi: "REJECTED",
-        practice_id: practiceId,
-      },
-      include: {
-        pasien: {
-          select: {
-            nama: true,
-            nik: true,
+          orderBy: {
+            tanggal_verifikasi: "desc",
           },
-        },
-        verifier: {
-          select: {
-            user_id: true,
-            full_name: true,
+        })
+      : Promise.resolve([]),
+    shouldIncludeModule("IMUNISASI")
+      ? prisma.imunisasi.findMany({
+          where: {
+            ...baseWhere,
+            ...(requestedSearch && {
+              OR: [
+                {
+                  pasien: {
+                    OR: [
+                      {
+                        nama: {
+                          contains: requestedSearch,
+                          mode: "insensitive",
+                        },
+                      },
+                      {
+                        nik: {
+                          contains: requestedSearch,
+                          mode: "insensitive",
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  nama_orangtua: {
+                    contains: requestedSearch,
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            }),
           },
-        },
-        practice_place: {
-          select: {
-            practice_id: true,
-            nama_praktik: true,
+          include: {
+            pasien: {
+              select: {
+                nama: true,
+                nik: true,
+              },
+            },
+            verifier: {
+              select: {
+                user_id: true,
+                full_name: true,
+              },
+            },
+            practice_place: {
+              select: {
+                practice_id: true,
+                nama_praktik: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: {
-        tanggal_verifikasi: "desc",
-      },
-    }),
+          orderBy: {
+            tanggal_verifikasi: "desc",
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return [
